@@ -165,7 +165,23 @@ export const dutiesService = {
           id: doc.id,
           ...doc.data()
         } as Duty));
+        
+        // Sort by createdAt in descending order (newest first)
+        duties.sort((a, b) => {
+          if (!a.createdAt || !b.createdAt) return 0;
+          const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : a.createdAt.toMillis();
+          const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : b.createdAt.toMillis();
+          return bTime - aTime;
+        });
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('onDutiesSnapshot - Raw duties from Firestore:', duties.length, duties);
+        }
         callback(duties);
+      },
+      (error) => {
+        console.error('onDutiesSnapshot error:', error);
+        callback([]);
       }
     );
   }

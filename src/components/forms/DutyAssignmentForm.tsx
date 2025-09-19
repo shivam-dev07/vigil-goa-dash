@@ -185,7 +185,10 @@ export function DutyAssignmentForm() {
         comments: formData.comments || '',
       };
 
-      await dutiesService.addDuty(dutyData);
+      const dutyId = await dutiesService.addDuty(dutyData);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Duty created successfully with ID:', dutyId, dutyData);
+      }
 
       toast({
         title: "Duty assigned successfully",

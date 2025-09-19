@@ -36,6 +36,9 @@ export const useRealTimeDuties = () => {
   useEffect(() => {
     const unsubscribe = dutiesService.onDutiesSnapshot(
       (data) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('useRealTimeDuties - Received duties:', data.length, data);
+        }
         setDuties(data);
         setLoading(false);
         setError(null);
