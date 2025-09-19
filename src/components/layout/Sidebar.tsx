@@ -20,17 +20,17 @@ const navigationItems = [
     icon: UserPlus,
   },
   {
-    name: 'Active Duties',
+    name: 'Analytics',
     href: '/active-duties',
     icon: Shield,
   },
   {
-    name: 'Compliance Logs',
+    name: 'Assign user',
     href: '/compliance-logs',
     icon: FileText,
   },
   {
-    name: 'Officers',
+    name: 'History',
     href: '/officers',
     icon: Users,
   },

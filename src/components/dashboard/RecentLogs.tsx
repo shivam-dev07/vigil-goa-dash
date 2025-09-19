@@ -63,9 +63,14 @@ export function RecentLogs() {
     }
   };
 
-  const formatTime = (timestamp: any) => {
+  const formatTime = (
+    timestamp: Date | { toDate: () => Date } | string | number | null | undefined
+  ) => {
     if (!timestamp) return 'Unknown';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date =
+      typeof timestamp === 'object' && timestamp !== null && 'toDate' in timestamp
+        ? timestamp.toDate()
+        : new Date(timestamp as string | number | Date);
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit'
