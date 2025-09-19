@@ -24,22 +24,7 @@ export default function Dashboard() {
   return (
     <div className="p-6 space-y-6">
       {/* Welcome Header */}
-      <Card className="bg-gradient-to-r from-primary to-primary-hover text-primary-foreground">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Welcome, Admin</h1>
-              <p className="text-primary-foreground/80 mt-1">
-                {currentDate} • {currentTime}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-primary-foreground/80">Night Shift</p>
-              <p className="text-lg font-semibold">Active</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
