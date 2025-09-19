@@ -45,8 +45,42 @@ export const useRealTimeDuties = () => {
     return () => unsubscribe();
   }, []);
 
-  const activeDuties = duties.filter(duty => duty.status === 'active');
-  const completedDuties = duties.filter(duty => duty.status === 'completed');
+  // Auto-update expired duties
+  useEffect(() => {
+    const checkExpiredDuties = () => {
+      const now = new Date();
+      duties.forEach(async (duty) => {
+        if (duty.endTime && duty.status !== 'complete' && duty.status !== 'completed') {
+          const endTime = new Date(duty.endTime);
+          if (endTime < now) {
+            try {
+              await dutiesService.updateDuty(duty.id!, { status: 'completed' });
+            } catch (error) {
+              console.error('Failed to update expired duty:', error);
+            }
+          }
+        }
+      });
+    };
+
+    // Check every minute
+    const interval = setInterval(checkExpiredDuties, 60000);
+    
+    // Check immediately
+    checkExpiredDuties();
+
+    return () => clearInterval(interval);
+  }, [duties]);
+
+  const activeDuties = duties.filter(duty => 
+    duty.status === 'active' || 
+    (duty.status === 'incomplete' && duty.endTime && new Date(duty.endTime) > new Date())
+  );
+  const completedDuties = duties.filter(duty => 
+    duty.status === 'completed' || 
+    duty.status === 'complete' ||
+    (duty.endTime && new Date(duty.endTime) <= new Date())
+  );
 
   return { 
     duties, 

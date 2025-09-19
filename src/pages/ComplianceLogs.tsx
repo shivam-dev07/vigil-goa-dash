@@ -118,7 +118,7 @@ export default function ComplianceLogs() {
           name: addLogForm.locationName,
           coordinates: [15.2993, 74.1240], // Default Goa coordinates
         },
-        timestamp: new Date() as any, // Will be converted to Timestamp
+        timestamp: new Date() as any, // Will be converted to Timestamp in service
         details: addLogForm.details,
       });
       
@@ -353,7 +353,7 @@ export default function ComplianceLogs() {
                     onChange={(e) => setAddLogForm(prev => ({ ...prev, details: e.target.value }))}
                     rows={3}
                   />
-                </div>
+      </div>
 
                 <Button 
                   type="submit" 
@@ -369,14 +369,14 @@ export default function ComplianceLogs() {
 
         {/* View Logs Tab */}
         <TabsContent value="view-logs" className="space-y-6">
-          <Card>
-            <CardHeader>
+      <Card>
+        <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
                 All Compliance Logs
               </CardTitle>
-            </CardHeader>
-            <CardContent>
+        </CardHeader>
+        <CardContent>
               {logsLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -431,8 +431,8 @@ export default function ComplianceLogs() {
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+        </CardContent>
+      </Card>
         </TabsContent>
       </Tabs>
     </div>

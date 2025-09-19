@@ -103,7 +103,8 @@ export default function Officers() {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata'
       });
     } catch {
       return 'Invalid Date';

@@ -163,6 +163,15 @@ export function DutyAssignmentForm() {
       const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
       const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
 
+      // Validate dates
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        throw new Error('Invalid date format');
+      }
+
+      if (startDateTime >= endDateTime) {
+        throw new Error('End time must be after start time');
+      }
+
       const dutyData: Omit<Duty, 'id' | 'createdAt' | 'updatedAt'> = {
         officerUid: formData.officerId,
         type: formData.dutyType,

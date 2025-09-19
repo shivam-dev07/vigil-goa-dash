@@ -120,9 +120,25 @@ export function InteractiveMap({
       };
     };
 
-    // Add markers for each duty
-    duties.forEach(duty => {
-      if (!duty || !duty.location || !duty.location.polygon || duty.location.polygon.length === 0) return;
+    // Filter duties to show only active/incomplete duties that haven't expired
+    const activeDuties = duties.filter(duty => {
+      if (!duty || !duty.location || !duty.location.polygon || duty.location.polygon.length === 0) return false;
+      
+      // Don't show completed duties
+      if (duty.status === 'complete' || duty.status === 'completed') return false;
+      
+      // Check if duty has expired
+      if (duty.endTime) {
+        const endTime = new Date(duty.endTime);
+        const now = new Date();
+        if (endTime < now) return false; // Duty has expired
+      }
+      
+      return true;
+    });
+
+    // Add markers for each active duty
+    activeDuties.forEach(duty => {
 
       // Get center point from polygon
       const centerLat = duty.location.polygon.reduce((sum, point) => sum + point.lat, 0) / duty.location.polygon.length;

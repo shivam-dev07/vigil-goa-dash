@@ -69,20 +69,30 @@ export default function ActiveDuties() {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'Invalid Date';
       
+      // Check if duty has expired
+      const now = new Date();
+      const isExpired = date < now;
+      
       return date.toLocaleDateString('en-IN', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
-      });
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata'
+      }) + (isExpired ? ' (Expired)' : '');
     } catch {
       return 'Invalid Date';
     }
   };
 
   // Get status badge variant
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: string, endTime?: string) => {
+    // Check if duty has expired
+    if (endTime && new Date(endTime) <= new Date()) {
+      return 'destructive';
+    }
+    
     switch (status) {
       case 'complete':
         return 'default';
@@ -95,6 +105,12 @@ export default function ActiveDuties() {
       default:
         return 'outline';
     }
+  };
+
+  // Check if duty is expired
+  const isDutyExpired = (endTime?: string) => {
+    if (!endTime) return false;
+    return new Date(endTime) <= new Date();
   };
 
   // Handle status update
@@ -222,8 +238,8 @@ export default function ActiveDuties() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusBadgeVariant(duty.status || 'unknown')}>
-                            {duty.status || 'Unknown'}
+                          <Badge variant={getStatusBadgeVariant(duty.status || 'unknown', duty.endTime)}>
+                            {isDutyExpired(duty.endTime) ? 'Expired' : (duty.status || 'Unknown')}
                           </Badge>
                         </TableCell>
                         <TableCell>{formatDate(duty.startTime || '')}</TableCell>
@@ -235,8 +251,9 @@ export default function ActiveDuties() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Select
-                              value={duty.status || 'incomplete'}
+                              value={isDutyExpired(duty.endTime) ? 'expired' : (duty.status || 'incomplete')}
                               onValueChange={(value) => handleStatusUpdate(duty.id!, value)}
+                              disabled={isDutyExpired(duty.endTime)}
                             >
                               <SelectTrigger className="w-32 h-8">
                                 <SelectValue />
@@ -246,6 +263,9 @@ export default function ActiveDuties() {
                                 <SelectItem value="active">Active</SelectItem>
                                 <SelectItem value="complete">Complete</SelectItem>
                                 <SelectItem value="incomplete">Incomplete</SelectItem>
+                                {isDutyExpired(duty.endTime) && (
+                                  <SelectItem value="expired">Expired</SelectItem>
+                                )}
                               </SelectContent>
                             </Select>
                             <Button

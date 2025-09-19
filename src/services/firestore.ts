@@ -57,7 +57,7 @@ export interface ComplianceLog {
     name: string;
     coordinates: [number, number];
   };
-  timestamp: Timestamp;
+  timestamp: Timestamp | Date;
   details?: string;
   photoUrl?: string;
   createdAt: Timestamp;
