@@ -1,14 +1,19 @@
-import { Users, Shield, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Users, Shield, CheckCircle, AlertTriangle, Database } from 'lucide-react';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { MapPanel } from '@/components/dashboard/MapPanel';
 import { RecentLogs } from '@/components/dashboard/RecentLogs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useRealTimeOfficers, useRealTimeDuties, useRealTimeCompliance } from '@/hooks/useRealTimeData';
+import { initializeDemoData } from '@/utils/seedData';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Dashboard() {
-  const { officers } = useRealTimeOfficers();
-  const { activeDuties, completedDuties } = useRealTimeDuties();
-  const { recentLogs } = useRealTimeCompliance();
+  const { officers, loading: officersLoading } = useRealTimeOfficers();
+  const { duties, activeDuties, completedDuties, loading: dutiesLoading } = useRealTimeDuties();
+  const { logs, recentLogs, loading: logsLoading } = useRealTimeCompliance();
+  const { toast } = useToast();
+  
   const currentDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
     year: 'numeric',
@@ -21,10 +26,43 @@ export default function Dashboard() {
     minute: '2-digit',
   });
 
+  const handleInitializeDemoData = async () => {
+    try {
+      await initializeDemoData();
+      toast({
+        title: "Demo data initialized",
+        description: "Sample officers, duties, and logs have been added to the database.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to initialize demo data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Welcome Header */}
-      
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">
+            {currentDate} • {currentTime}
+          </p>
+        </div>
+        {recentLogs.length === 0 && (
+          <Button 
+            onClick={handleInitializeDemoData}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Database className="h-4 w-4" />
+            Initialize Demo Data
+          </Button>
+        )}
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -32,25 +70,29 @@ export default function Dashboard() {
           title="Total Officers"
           value={officers.length}
           icon={Users}
-          trend={{ value: 8, isPositive: true }}
+          trend={{ value: officers.length > 0 ? 100 : 0, isPositive: true }}
+          loading={officersLoading}
         />
         <StatsCard
           title="Active Duties"
           value={activeDuties.length}
           icon={Shield}
-          trend={{ value: 5, isPositive: true }}
+          trend={{ value: activeDuties.length > 0 ? 100 : 0, isPositive: true }}
+          loading={dutiesLoading}
         />
         <StatsCard
           title="Completed Duties"
           value={completedDuties.length}
           icon={CheckCircle}
-          trend={{ value: 12, isPositive: true }}
+          trend={{ value: completedDuties.length > 0 ? 100 : 0, isPositive: true }}
+          loading={dutiesLoading}
         />
         <StatsCard
           title="Recent Activities"
           value={recentLogs.length}
           icon={AlertTriangle}
-          trend={{ value: -25, isPositive: false }}
+          trend={{ value: recentLogs.length > 0 ? 100 : 0, isPositive: true }}
+          loading={logsLoading}
         />
       </div>
 

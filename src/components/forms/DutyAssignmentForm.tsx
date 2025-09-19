@@ -18,6 +18,7 @@ export function DutyAssignmentForm() {
   const { toast } = useToast();
   const mapRef = useRef<L.Map | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null);
+  const [selectedPolygon, setSelectedPolygon] = useState<Array<{lat: number, lng: number}>>([]);
   const [geofenceRadius, setGeofenceRadius] = useState(200);
   const [currentGeofence, setCurrentGeofence] = useState<L.Circle | null>(null);
   
@@ -29,11 +30,43 @@ export function DutyAssignmentForm() {
     endDate: '',
     endTime: '',
     locationName: '',
+    comments: '',
   });
 
   const [loading, setLoading] = useState(false);
 
-  const availableOfficers = officers.filter(officer => officer.status === 'active');
+  const availableOfficers = officers.filter(officer => 
+    !officer.staff_nature_of_work?.toLowerCase().includes('absent') && 
+    !officer.staff_nature_of_work?.toLowerCase().includes('leave')
+  );
+
+  // Helper function to create circle polygon from center and radius
+  const createCirclePolygon = (center: [number, number], radius: number): Array<{lat: number, lng: number}> => {
+    const points = [];
+    const [lat, lng] = center;
+    const earthRadius = 6371000; // Earth's radius in meters
+    const angularRadius = radius / earthRadius;
+    
+    for (let i = 0; i < 16; i++) {
+      const angle = (i * 360) / 16;
+      const pointLat = lat + (angularRadius * Math.cos(angle * Math.PI / 180));
+      const pointLng = lng + (angularRadius * Math.sin(angle * Math.PI / 180) / Math.cos(lat * Math.PI / 180));
+      points.push({ lat: pointLat, lng: pointLng });
+    }
+    return points;
+  };
+
+  // Helper function to create patrol polygon (square around point)
+  const createPatrolPolygon = (center: [number, number]): Array<{lat: number, lng: number}> => {
+    const [lat, lng] = center;
+    const offset = 0.01; // ~1km offset
+    return [
+      { lat: lat - offset, lng: lng - offset },
+      { lat: lat + offset, lng: lng - offset },
+      { lat: lat + offset, lng: lng + offset },
+      { lat: lat - offset, lng: lng + offset },
+    ];
+  };
 
   const handleMapReady = (map: L.Map) => {
     mapRef.current = map;
@@ -54,8 +87,8 @@ export function DutyAssignmentForm() {
         .bindPopup('Selected duty location')
         .openPopup();
       
-      // Add geofence if Naka duty
       if (formData.dutyType === 'naka') {
+        // Add circular geofence for Naka duty
         const circle = L.circle([lat, lng], {
           color: '#22c55e',
           fillColor: '#22c55e',
@@ -63,6 +96,22 @@ export function DutyAssignmentForm() {
           radius: geofenceRadius
         }).addTo(map);
         setCurrentGeofence(circle);
+        
+        // Create polygon from circle for database storage
+        const polygon = createCirclePolygon([lat, lng], geofenceRadius);
+        setSelectedPolygon(polygon);
+      } else if (formData.dutyType === 'patrol') {
+        // For patrol, create a simple polygon around the point
+        const polygon = createPatrolPolygon([lat, lng]);
+        setSelectedPolygon(polygon);
+        
+        // Draw polygon on map
+        const leafletPolygon = L.polygon(polygon.map(p => [p.lat, p.lng]), {
+          color: '#3b82f6',
+          fillColor: '#3b82f6',
+          fillOpacity: 0.2,
+        }).addTo(map);
+        setCurrentGeofence(leafletPolygon as any);
       }
     });
   };
@@ -87,7 +136,7 @@ export function DutyAssignmentForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedLocation) {
+    if (!selectedLocation || selectedPolygon.length === 0) {
       toast({
         title: "Location required",
         description: "Please select a location on the map",
@@ -115,25 +164,23 @@ export function DutyAssignmentForm() {
       const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
 
       const dutyData: Omit<Duty, 'id' | 'createdAt' | 'updatedAt'> = {
-        officerId: formData.officerId,
-        officerName: selectedOfficer.name,
-        officerBadge: selectedOfficer.badgeId,
+        officerUid: formData.officerId,
         type: formData.dutyType,
         location: {
-          name: formData.locationName || 'Selected Location',
-          coordinates: selectedLocation,
-          geofence: formData.dutyType === 'naka' ? { radius: geofenceRadius } : undefined,
+          polygon: selectedPolygon,
         },
-        startTime: Timestamp.fromDate(startDateTime),
-        endTime: Timestamp.fromDate(endDateTime),
-        status: 'assigned',
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        status: 'incomplete',
+        assignedAt: new Date().toISOString(),
+        comments: formData.comments || '',
       };
 
       await dutiesService.addDuty(dutyData);
 
       toast({
         title: "Duty assigned successfully",
-        description: `${selectedOfficer.name} has been assigned ${formData.dutyType} duty`,
+        description: `${selectedOfficer.staff_name} has been assigned ${formData.dutyType} duty`,
       });
 
       // Reset form
@@ -145,8 +192,10 @@ export function DutyAssignmentForm() {
         endDate: '',
         endTime: '',
         locationName: '',
+        comments: '',
       });
       setSelectedLocation(null);
+      setSelectedPolygon([]);
       if (currentGeofence && mapRef.current) {
         mapRef.current.removeLayer(currentGeofence);
         setCurrentGeofence(null);
@@ -188,8 +237,11 @@ export function DutyAssignmentForm() {
                   {availableOfficers.map((officer) => (
                     <SelectItem key={officer.id} value={officer.id!}>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">{officer.badgeId}</Badge>
-                        <span>{officer.name}</span>
+                        <Badge variant="outline">{officer.staff_id}</Badge>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{officer.staff_name}</span>
+                          <span className="text-xs text-muted-foreground">{officer.staff_designation}</span>
+                        </div>
                       </div>
                     </SelectItem>
                   ))}
@@ -279,6 +331,16 @@ export function DutyAssignmentForm() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="comments">Comments (Optional)</Label>
+              <Input
+                id="comments"
+                placeholder="Additional notes or instructions"
+                value={formData.comments}
+                onChange={(e) => setFormData(prev => ({ ...prev, comments: e.target.value }))}
+              />
+            </div>
+
             {formData.dutyType === 'naka' && (
               <div className="space-y-2">
                 <Label htmlFor="radius">Geofence Radius (meters)</Label>
@@ -305,7 +367,7 @@ export function DutyAssignmentForm() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading || !selectedLocation}
+              disabled={loading || !selectedLocation || selectedPolygon.length === 0}
             >
               {loading ? 'Assigning...' : 'Assign Duty'}
             </Button>

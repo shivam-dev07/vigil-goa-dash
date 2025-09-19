@@ -1,24 +1,323 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useRealTimeDuties } from '@/hooks/useRealTimeData';
+import { useRealTimeOfficers } from '@/hooks/useRealTimeData';
+import { officersService } from '@/services/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Users, 
+  Clock, 
+  Search, 
+  User,
+  Trash2,
+  Edit
+} from 'lucide-react';
 
 export default function Officers() {
+  const { duties = [], loading: dutiesLoading } = useRealTimeDuties();
+  const { officers = [], loading: officersLoading } = useRealTimeOfficers();
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+
+  // Handle delete officer
+  const handleDeleteOfficer = async (officerId: string, officerName: string) => {
+    if (!confirm(`Are you sure you want to delete ${officerName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await officersService.deleteOfficer(officerId);
+      toast({
+        title: "Officer deleted",
+        description: `${officerName} has been removed from the database`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to delete officer",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Filter duties based on search and filters
+  const filteredDuties = duties.filter(duty => {
+    if (!duty) return false;
+    
+    const matchesSearch = (duty.officerUid || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (duty.type || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (duty.comments || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || duty.status === statusFilter;
+    const matchesType = typeFilter === 'all' || duty.type === typeFilter;
+    
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  // Get officer name by UID
+  const getOfficerName = (officerUid: string) => {
+    const officer = officers.find(o => o.id === officerUid);
+    return officer ? officer.staff_name : 'Unknown Officer';
+  };
+
+  // Get officer details by UID
+  const getOfficerDetails = (officerUid: string) => {
+    if (!officerUid || !officers) {
+      return {
+        name: 'Unknown Officer',
+        designation: 'Unknown',
+        staffId: 'Unknown'
+      };
+    }
+    
+    const officer = officers.find(o => o && o.id === officerUid);
+    return officer ? {
+      name: officer.staff_name || 'Unknown Officer',
+      designation: officer.staff_designation || 'Unknown',
+      staffId: officer.staff_id || 'Unknown'
+    } : {
+      name: 'Unknown Officer',
+      designation: 'Unknown',
+      staffId: 'Unknown'
+    };
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'No Date';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      
+      return date.toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Invalid Date';
+    }
+  };
+
+  // Get status badge variant
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'complete':
+        return 'default';
+      case 'incomplete':
+        return 'destructive';
+      case 'assigned':
+        return 'secondary';
+      case 'active':
+        return 'default';
+      default:
+        return 'outline';
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-2">
         <Users className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold text-foreground">Officers Management</h1>
+        <h1 className="text-2xl font-bold text-foreground">History & Officers</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Officer Directory</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            This page will manage the officer database with profiles, contact information, duty history, and performance metrics.
-          </p>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="duties" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="duties">Duty History</TabsTrigger>
+          <TabsTrigger value="officers">Officers</TabsTrigger>
+        </TabsList>
+
+        {/* Duty History Tab */}
+        <TabsContent value="duties" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Duty Assignment History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search by officer, type, or comments..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-32">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="incomplete">Incomplete</SelectItem>
+                    <SelectItem value="complete">Complete</SelectItem>
+                    <SelectItem value="assigned">Assigned</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-full sm:w-32">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="naka">Naka</SelectItem>
+                    <SelectItem value="patrol">Patrol</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Duty History Table */}
+              {dutiesLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground mt-2">Loading duty history...</p>
+                </div>
+              ) : filteredDuties.length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No duty assignments found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Officer</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Start Time</TableHead>
+                        <TableHead>End Time</TableHead>
+                        <TableHead>Assigned At</TableHead>
+                        <TableHead>Comments</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDuties.map((duty) => {
+                        if (!duty || !duty.id) return null;
+                        
+                        const officer = getOfficerDetails(duty.officerUid);
+                        return (
+                          <TableRow key={duty.id}>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{officer.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {officer.designation} • {officer.staffId}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">
+                                {duty.type || 'Unknown'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusBadgeVariant(duty.status || 'unknown')}>
+                                {duty.status || 'Unknown'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{formatDate(duty.startTime || '')}</TableCell>
+                            <TableCell>{formatDate(duty.endTime || '')}</TableCell>
+                            <TableCell>{formatDate(duty.assignedAt || '')}</TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {duty.comments || '-'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Officers Tab */}
+        <TabsContent value="officers" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Officer Directory
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {officersLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground mt-2">Loading officers...</p>
+                </div>
+              ) : officers.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No officers found</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {officers.map((officer) => {
+                    if (!officer || !officer.id) return null;
+                    
+                    return (
+                      <Card key={officer.id} className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-2 flex-1">
+                            <h3 className="font-semibold">{officer.staff_name || 'Unknown Officer'}</h3>
+                            <div className="space-y-1">
+                              <p className="text-sm text-muted-foreground">
+                                <span className="font-medium">ID:</span> {officer.staff_id || 'Unknown'}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                <span className="font-medium">Designation:</span> {officer.staff_designation || 'Unknown'}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                <span className="font-medium">Status:</span> {officer.staff_nature_of_work || 'Unknown'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge 
+                              variant={(officer.staff_nature_of_work || '').toLowerCase().includes('duty') ? 'default' : 'secondary'}
+                            >
+                              {(officer.staff_nature_of_work || '').includes('S/L') ? 'On Leave' : 'Available'}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteOfficer(officer.id!, officer.staff_name || 'Unknown Officer')}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

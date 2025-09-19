@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useRealTimeDuties } from '@/hooks/useRealTimeData';
+import { useRealTimeOfficers } from '@/hooks/useRealTimeData';
 
 // Fix for default markers in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -25,6 +27,10 @@ export function InteractiveMap({
 }: InteractiveMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.LayerGroup | null>(null);
+  
+  const { duties } = useRealTimeDuties();
+  const { officers } = useRealTimeOfficers();
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -57,54 +63,8 @@ export function InteractiveMap({
         .bindPopup(`<b>${station.name}</b><br/>Police Station`);
     });
 
-    // Mock active duties
-    const activeDuties = [
-      { 
-        officer: 'P012345 - Officer Sharma', 
-        location: [15.4809, 73.8278] as [number, number],
-        type: 'Naka',
-        status: 'active'
-      },
-      { 
-        officer: 'P012346 - Officer Patel', 
-        location: [15.2800, 73.9400] as [number, number],
-        type: 'Patrol',
-        status: 'active'
-      },
-      { 
-        officer: 'P012347 - Officer Singh', 
-        location: [15.3860, 73.8057] as [number, number],
-        type: 'Naka',
-        status: 'active'
-      },
-    ];
-
-    // Add duty markers
-    activeDuties.forEach(duty => {
-      const dutyIcon = L.divIcon({
-        html: duty.type === 'Naka' ? '🛑' : '🚶‍♂️',
-        iconSize: [25, 25],
-        className: 'duty-marker'
-      });
-
-      L.marker(duty.location, { icon: dutyIcon })
-        .addTo(map)
-        .bindPopup(`
-          <b>${duty.officer}</b><br/>
-          Type: ${duty.type}<br/>
-          Status: <span style="color: #22c55e; font-weight: bold;">${duty.status}</span>
-        `);
-
-      // Add geofence for Naka duties
-      if (duty.type === 'Naka') {
-        L.circle(duty.location, {
-          color: '#22c55e',
-          fillColor: '#22c55e',
-          fillOpacity: 0.1,
-          radius: 200
-        }).addTo(map);
-      }
-    });
+    // Create markers layer group
+    markersRef.current = L.layerGroup().addTo(map);
 
     // Mock patrol routes
     const patrolRoutes = [
@@ -138,6 +98,92 @@ export function InteractiveMap({
       }
     };
   }, [center, zoom, onMapReady]);
+
+  // Update markers when duties change
+  useEffect(() => {
+    if (!mapInstanceRef.current || !markersRef.current) return;
+
+    // Clear existing duty markers
+    markersRef.current.clearLayers();
+
+    // Get officer details helper
+    const getOfficerDetails = (officerUid: string) => {
+      const officer = officers.find(o => o && o.id === officerUid);
+      return officer ? {
+        name: officer.staff_name || 'Unknown Officer',
+        designation: officer.staff_designation || 'Unknown',
+        staffId: officer.staff_id || 'Unknown'
+      } : {
+        name: 'Unknown Officer',
+        designation: 'Unknown',
+        staffId: 'Unknown'
+      };
+    };
+
+    // Add markers for each duty
+    duties.forEach(duty => {
+      if (!duty || !duty.location || !duty.location.polygon || duty.location.polygon.length === 0) return;
+
+      // Get center point from polygon
+      const centerLat = duty.location.polygon.reduce((sum, point) => sum + point.lat, 0) / duty.location.polygon.length;
+      const centerLng = duty.location.polygon.reduce((sum, point) => sum + point.lng, 0) / duty.location.polygon.length;
+      const centerPoint: [number, number] = [centerLat, centerLng];
+
+      const officer = getOfficerDetails(duty.officerUid);
+
+      // Create duty icon based on type
+      const dutyIcon = L.divIcon({
+        html: duty.type === 'naka' ? '🛑' : '🚶‍♂️',
+        iconSize: [30, 30],
+        className: 'duty-marker'
+      });
+
+      // Add marker
+      const marker = L.marker(centerPoint, { icon: dutyIcon })
+        .bindPopup(`
+          <div style="min-width: 200px;">
+            <b>${officer.name}</b><br/>
+            <small>${officer.designation} • ${officer.staffId}</small><br/>
+            <hr style="margin: 8px 0;">
+            <b>Type:</b> ${duty.type?.toUpperCase() || 'Unknown'}<br/>
+            <b>Status:</b> <span style="color: ${duty.status === 'complete' ? '#22c55e' : duty.status === 'incomplete' ? '#ef4444' : '#f59e0b'}; font-weight: bold;">${duty.status || 'Unknown'}</span><br/>
+            ${duty.comments ? `<b>Comments:</b> ${duty.comments}<br/>` : ''}
+            <small><b>Assigned:</b> ${duty.assignedAt ? new Date(duty.assignedAt).toLocaleString('en-IN') : 'Unknown'}</small>
+          </div>
+        `);
+
+      markersRef.current?.addLayer(marker);
+
+      // Add geofence/polygon based on duty type
+      if (duty.type === 'naka') {
+        // For naka, create a circle from the polygon points
+        const radius = Math.max(
+          Math.abs(duty.location.polygon[0].lat - centerLat) * 111000, // Convert to meters
+          Math.abs(duty.location.polygon[0].lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180)
+        );
+        
+        const circle = L.circle(centerPoint, {
+          color: '#22c55e',
+          fillColor: '#22c55e',
+          fillOpacity: 0.1,
+          radius: radius
+        });
+        markersRef.current?.addLayer(circle);
+      } else if (duty.type === 'patrol') {
+        // For patrol, draw the polygon
+        const polygon = L.polygon(
+          duty.location.polygon.map(p => [p.lat, p.lng] as [number, number]),
+          {
+            color: '#3b82f6',
+            fillColor: '#3b82f6',
+            fillOpacity: 0.1,
+            weight: 2
+          }
+        );
+        markersRef.current?.addLayer(polygon);
+      }
+    });
+  }, [duties, officers]);
 
   return (
     <div 

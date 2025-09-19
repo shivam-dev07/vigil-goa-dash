@@ -43,13 +43,13 @@ export function RecentLogs() {
       case 'check-in':
       case 'check-out':
       case 'patrol-update':
-        return 'bg-success';
+        return 'bg-green-500';
       case 'geofence-violation':
-        return 'bg-warning';
+        return 'bg-yellow-500';
       case 'incident-report':
-        return 'bg-destructive';
+        return 'bg-red-500';
       default:
-        return 'bg-muted';
+        return 'bg-gray-500';
     }
   };
 
@@ -58,8 +58,47 @@ export function RecentLogs() {
       case 'geofence-violation':
       case 'incident-report':
         return 'destructive' as const;
-      default:
+      case 'check-in':
+      case 'check-out':
         return 'default' as const;
+      case 'patrol-update':
+        return 'secondary' as const;
+      default:
+        return 'outline' as const;
+    }
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'check-in':
+        return '✅';
+      case 'check-out':
+        return '🚪';
+      case 'patrol-update':
+        return '🚶‍♂️';
+      case 'geofence-violation':
+        return '⚠️';
+      case 'incident-report':
+        return '🚨';
+      default:
+        return '📝';
+    }
+  };
+
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case 'check-in':
+        return 'Check In';
+      case 'check-out':
+        return 'Check Out';
+      case 'patrol-update':
+        return 'Patrol Update';
+      case 'geofence-violation':
+        return 'Geofence Violation';
+      case 'incident-report':
+        return 'Incident Report';
+      default:
+        return action.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
   };
 
@@ -95,31 +134,44 @@ export function RecentLogs() {
             </div>
           ) : (
             recentLogs.map((log) => (
-              <div key={log.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`h-2 w-2 rounded-full ${getStatusColor(log.action)}`} />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {log.officerName}
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {log.location.name}
+              <div key={log.id} className="flex items-start justify-between p-4 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-lg">{getActionIcon(log.action)}</span>
+                    <div className={`h-2 w-2 rounded-full ${getStatusColor(log.action)}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-semibold text-foreground">
+                        {log.officerName}
+                      </p>
+                      <Badge 
+                        variant={getActionVariant(log.action)}
+                        className="text-xs px-2 py-0.5"
+                      >
+                        {getActionLabel(log.action)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{log.location.name}</span>
                     </p>
                     {log.details && (
-                      <p className="text-xs text-muted-foreground mt-1">{log.details}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {log.details}
+                      </p>
                     )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <Badge 
-                    variant={getActionVariant(log.action)}
-                    className="text-xs"
-                  >
-                    {log.action.replace('-', ' ')}
-                  </Badge>
-                  <p className="text-xs text-muted-foreground mt-1">
+                <div className="text-right ml-4 flex-shrink-0">
+                  <p className="text-xs text-muted-foreground font-medium">
                     {formatTime(log.timestamp)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {log.timestamp && typeof log.timestamp === 'object' && 'toDate' in log.timestamp
+                      ? log.timestamp.toDate().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+                      : new Date(log.timestamp as unknown as string).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+                    }
                   </p>
                 </div>
               </div>

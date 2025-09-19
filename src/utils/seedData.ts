@@ -5,40 +5,28 @@ import { officersService, dutiesService, complianceService } from '@/services/fi
 export const seedOfficers = async () => {
   const officers = [
     {
-      badgeId: 'P012345',
-      name: 'Officer Sharma',
-      email: 'sharma@goapolice.gov.in',
-      phone: '+91-9876543210',
-      rank: 'Constable',
-      station: 'Panaji Police Station',
-      status: 'active' as const,
+      staff_id: 'P012345',
+      staff_name: 'Officer Sharma',
+      staff_designation: 'Constable',
+      staff_nature_of_work: 'Presently on duty',
     },
     {
-      badgeId: 'P012346',
-      name: 'Officer Patel',
-      email: 'patel@goapolice.gov.in',
-      phone: '+91-9876543211',
-      rank: 'Head Constable',
-      station: 'Margao Police Station',
-      status: 'active' as const,
+      staff_id: 'P012346',
+      staff_name: 'Officer Patel',
+      staff_designation: 'Head Constable',
+      staff_nature_of_work: 'Presently on duty',
     },
     {
-      badgeId: 'P012347',
-      name: 'Officer Singh',
-      email: 'singh@goapolice.gov.in',
-      phone: '+91-9876543212',
-      rank: 'Constable',
-      station: 'Vasco Police Station',
-      status: 'on-duty' as const,
+      staff_id: 'P012347',
+      staff_name: 'Officer Singh',
+      staff_designation: 'Constable',
+      staff_nature_of_work: 'Presently on S/L',
     },
     {
-      badgeId: 'P012348',
-      name: 'Officer Das',
-      email: 'das@goapolice.gov.in',
-      phone: '+91-9876543213',
-      rank: 'Inspector',
-      station: 'Calangute Police Station',
-      status: 'active' as const,
+      staff_id: 'P012348',
+      staff_name: 'Officer Das',
+      staff_designation: 'Inspector',
+      staff_nature_of_work: 'Presently on duty',
     },
   ];
 
@@ -110,7 +98,7 @@ export const seedComplianceLogs = async () => {
         name: 'Panaji Market Square',
         coordinates: [15.4909, 73.8278] as [number, number],
       },
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 15 * 60 * 1000)),
+      timestamp: Timestamp.fromDate(new Date(Date.now() - 5 * 60 * 1000)), // 5 minutes ago
       details: 'On-time check-in for night shift',
     },
     {
@@ -122,7 +110,7 @@ export const seedComplianceLogs = async () => {
         name: 'Beach Road',
         coordinates: [15.2700, 73.9500] as [number, number],
       },
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 30 * 60 * 1000)),
+      timestamp: Timestamp.fromDate(new Date(Date.now() - 15 * 60 * 1000)), // 15 minutes ago
       details: 'Patrol route completed successfully',
     },
     {
@@ -134,8 +122,44 @@ export const seedComplianceLogs = async () => {
         name: 'Market Area',
         coordinates: [15.4859, 73.8228] as [number, number],
       },
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 45 * 60 * 1000)),
+      timestamp: Timestamp.fromDate(new Date(Date.now() - 30 * 60 * 1000)), // 30 minutes ago
       details: 'Minor traffic violation reported and resolved',
+    },
+    {
+      dutyId: 'demo-duty-3',
+      officerId: 'demo-3',
+      officerName: 'Officer Singh',
+      action: 'check-out' as const,
+      location: {
+        name: 'Vasco Police Station',
+        coordinates: [15.3960, 73.8157] as [number, number],
+      },
+      timestamp: Timestamp.fromDate(new Date(Date.now() - 45 * 60 * 1000)), // 45 minutes ago
+      details: 'End of shift check-out',
+    },
+    {
+      dutyId: 'demo-duty-4',
+      officerId: 'demo-4',
+      officerName: 'Officer Das',
+      action: 'geofence-violation' as const,
+      location: {
+        name: 'Calangute Beach',
+        coordinates: [15.5400, 73.7500] as [number, number],
+      },
+      timestamp: Timestamp.fromDate(new Date(Date.now() - 60 * 60 * 1000)), // 1 hour ago
+      details: 'Officer left assigned patrol area',
+    },
+    {
+      dutyId: 'demo-duty-2',
+      officerId: 'demo-2',
+      officerName: 'Officer Patel',
+      action: 'patrol-update' as const,
+      location: {
+        name: 'Margao City Center',
+        coordinates: [15.2700, 73.9500] as [number, number],
+      },
+      timestamp: Timestamp.fromDate(new Date(Date.now() - 90 * 60 * 1000)), // 1.5 hours ago
+      details: 'Routine patrol check completed',
     },
   ];
 

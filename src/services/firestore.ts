@@ -15,39 +15,35 @@ import { db } from '@/lib/firebase';
 // Officer interface
 export interface Officer {
   id?: string;
-  badgeId: string;
-  name: string;
-  email: string;
-  phone: string;
-  rank: string;
-  station: string;
-  status: 'active' | 'inactive' | 'on-duty';
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  staff_id: string;
+  staff_name: string;
+  staff_designation: string;
+  staff_nature_of_work: string;
+  status?: 'active' | 'inactive' | 'on-duty';
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 // Duty interface
 export interface Duty {
   id?: string;
-  officerId: string;
-  officerName: string;
-  officerBadge: string;
+  officerUid: string;
   type: 'naka' | 'patrol';
   location: {
-    name: string;
-    coordinates: [number, number];
-    geofence?: {
-      radius: number; // for naka
-      polygon?: [number, number][]; // for patrol
-    };
+    polygon: Array<{
+      lat: number;
+      lng: number;
+    }>;
   };
-  startTime: Timestamp;
-  endTime: Timestamp;
-  status: 'assigned' | 'active' | 'completed' | 'missed';
-  checkInTime?: Timestamp;
-  checkOutTime?: Timestamp;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  startTime: string; // ISO date string
+  endTime: string; // ISO date string
+  status: 'incomplete' | 'complete' | 'assigned' | 'active' | 'completed' | 'missed';
+  assignedAt: string; // ISO date string
+  comments?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 // Compliance Log interface
@@ -100,10 +96,16 @@ export const officersService = {
     });
   },
 
+  // Delete officer
+  async deleteOfficer(id: string): Promise<void> {
+    const officerRef = doc(db, 'officers', id);
+    await deleteDoc(officerRef);
+  },
+
   // Listen to officers in real-time
   onOfficersSnapshot(callback: (officers: Officer[]) => void) {
     return onSnapshot(
-      query(collection(db, 'officers'), orderBy('createdAt', 'desc')),
+      collection(db, 'officers'),
       (snapshot) => {
         const officers = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -148,10 +150,16 @@ export const dutiesService = {
     });
   },
 
+  // Delete duty
+  async deleteDuty(id: string): Promise<void> {
+    const dutyRef = doc(db, 'duties', id);
+    await deleteDoc(dutyRef);
+  },
+
   // Listen to duties in real-time
   onDutiesSnapshot(callback: (duties: Duty[]) => void) {
     return onSnapshot(
-      query(collection(db, 'duties'), orderBy('createdAt', 'desc')),
+      collection(db, 'duties'),
       (snapshot) => {
         const duties = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -180,9 +188,16 @@ export const complianceService = {
   async addComplianceLog(log: Omit<ComplianceLog, 'id' | 'createdAt'>): Promise<string> {
     const docRef = await addDoc(collection(db, 'compliance'), {
       ...log,
+      timestamp: log.timestamp instanceof Date ? Timestamp.fromDate(log.timestamp) : log.timestamp,
       createdAt: Timestamp.now(),
     });
     return docRef.id;
+  },
+
+  // Delete compliance log
+  async deleteComplianceLog(id: string): Promise<void> {
+    const logRef = doc(db, 'compliance', id);
+    await deleteDoc(logRef);
   },
 
   // Listen to compliance logs in real-time

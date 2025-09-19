@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   UserPlus, 
-  Shield, 
+  Shield,
   FileText, 
   Users 
 } from 'lucide-react';
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 const navigationItems = [
   {
-    name: 'Overview',
+    name: 'Dashboard',
     href: '/',
     icon: LayoutDashboard,
   },
@@ -20,17 +20,17 @@ const navigationItems = [
     icon: UserPlus,
   },
   {
-    name: 'Analytics',
+    name: 'Active Duties',
     href: '/active-duties',
     icon: Shield,
   },
   {
-    name: 'Assign user',
+    name: 'User Management',
     href: '/compliance-logs',
     icon: FileText,
   },
   {
-    name: 'History',
+    name: 'History & Officers',
     href: '/officers',
     icon: Users,
   },
