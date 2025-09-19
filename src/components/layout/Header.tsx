@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/useAuth';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -16,6 +17,7 @@ interface HeaderProps {
 
 export function Header({ onToggleSidebar }: HeaderProps) {
   const [notifications] = useState(3); // Mock notification count
+  const { logout, user } = useAuth();
 
   return (
     <header className="h-16 bg-primary border-b border-border flex items-center justify-between px-6 shadow-sm">
@@ -69,10 +71,13 @@ export function Header({ onToggleSidebar }: HeaderProps) {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
-              Profile
+              Profile ({user?.email})
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem 
+              className="text-destructive"
+              onClick={logout}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </DropdownMenuItem>

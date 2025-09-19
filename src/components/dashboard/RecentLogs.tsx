@@ -1,48 +1,77 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, XCircle, MapPin } from 'lucide-react';
-
-// Mock data for recent logs
-const mockLogs = [
-  {
-    id: '1',
-    officerId: 'P012345',
-    officerName: 'Officer Sharma',
-    action: 'Check-in',
-    location: 'Sector 5 - Downtown',
-    timestamp: '02:15',
-    status: 'success' as const,
-  },
-  {
-    id: '2',
-    officerId: 'P012346',
-    officerName: 'Officer Patel',
-    action: 'Patrol Complete',
-    location: 'Beach Road',
-    timestamp: '01:45',
-    status: 'success' as const,
-  },
-  {
-    id: '3',
-    officerId: 'P012347',
-    officerName: 'Officer Singh',
-    action: 'Geofence Violation',
-    location: 'Market Area',
-    timestamp: '01:30',
-    status: 'warning' as const,
-  },
-  {
-    id: '4',
-    officerId: 'P012348',
-    officerName: 'Officer Das',
-    action: 'Check-out',
-    location: 'Police Station',
-    timestamp: '01:15',
-    status: 'success' as const,
-  },
-];
+import { Clock, MapPin } from 'lucide-react';
+import { useRealTimeCompliance } from '@/hooks/useRealTimeData';
 
 export function RecentLogs() {
+  const { recentLogs, loading } = useRealTimeCompliance();
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary" />
+            Recent Activity Logs
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-2 rounded-full bg-muted" />
+                  <div className="space-y-1">
+                    <div className="h-4 w-32 bg-muted rounded" />
+                    <div className="h-3 w-24 bg-muted rounded" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="h-4 w-16 bg-muted rounded" />
+                  <div className="h-3 w-12 bg-muted rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const getStatusColor = (action: string) => {
+    switch (action) {
+      case 'check-in':
+      case 'check-out':
+      case 'patrol-update':
+        return 'bg-success';
+      case 'geofence-violation':
+        return 'bg-warning';
+      case 'incident-report':
+        return 'bg-destructive';
+      default:
+        return 'bg-muted';
+    }
+  };
+
+  const getActionVariant = (action: string) => {
+    switch (action) {
+      case 'geofence-violation':
+      case 'incident-report':
+        return 'destructive' as const;
+      default:
+        return 'default' as const;
+    }
+  };
+
+  const formatTime = (timestamp: any) => {
+    if (!timestamp) return 'Unknown';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -53,34 +82,44 @@ export function RecentLogs() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {mockLogs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className={`h-2 w-2 rounded-full ${
-                  log.status === 'success' ? 'bg-success' : 
-                  log.status === 'warning' ? 'bg-warning' : 'bg-destructive'
-                }`} />
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {log.officerName} ({log.officerId})
-                  </p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {log.location}
+          {recentLogs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No recent activity logs</p>
+              <p className="text-xs">Logs will appear here as officers perform duties</p>
+            </div>
+          ) : (
+            recentLogs.map((log) => (
+              <div key={log.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className={`h-2 w-2 rounded-full ${getStatusColor(log.action)}`} />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {log.officerName}
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {log.location.name}
+                    </p>
+                    {log.details && (
+                      <p className="text-xs text-muted-foreground mt-1">{log.details}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <Badge 
+                    variant={getActionVariant(log.action)}
+                    className="text-xs"
+                  >
+                    {log.action.replace('-', ' ')}
+                  </Badge>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatTime(log.timestamp)}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <Badge 
-                  variant={log.status === 'success' ? 'default' : 'destructive'}
-                  className="text-xs"
-                >
-                  {log.action}
-                </Badge>
-                <p className="text-xs text-muted-foreground mt-1">{log.timestamp}</p>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </CardContent>
     </Card>
