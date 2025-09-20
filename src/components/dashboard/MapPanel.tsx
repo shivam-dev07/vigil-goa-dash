@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin } from 'lucide-react';
-import { useRealTimeDuties } from '@/hooks/useRealTimeData';
+import { Button } from '@/components/ui/button';
+import { MapPin, RefreshCw } from 'lucide-react';
 import { InteractiveMap } from '@/components/maps/InteractiveMap';
+import { useRealTimeDuties } from '@/hooks/useRealTimeData';
+import { useState } from 'react';
 
 interface MapPanelProps {
   selectedDutyId?: string;
@@ -11,6 +13,12 @@ interface MapPanelProps {
 
 export function MapPanel({ selectedDutyId, onDutyFocus, height = "400px" }: MapPanelProps) {
   const { duties } = useRealTimeDuties();
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+  
   return (
     <Card style={{ height }}>
       <CardHeader className="py-3 px-4">
@@ -19,6 +27,15 @@ export function MapPanel({ selectedDutyId, onDutyFocus, height = "400px" }: MapP
             <MapPin className="h-5 w-5 text-primary" />
             <span className="text-sm sm:text-base">Live Duty Map</span>
             <span className="text-xs text-muted-foreground">(duties: {duties.length})</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              className="h-6 w-6 p-0 ml-2"
+              title="Refresh map markers"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
           </div>
           {/* Legend - Responsive */}
           <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
@@ -39,6 +56,7 @@ export function MapPanel({ selectedDutyId, onDutyFocus, height = "400px" }: MapP
       </CardHeader>
       <CardContent className="p-0 h-[calc(100%-80px)]">
         <InteractiveMap 
+          key={refreshKey}
           height="100%" 
           center={[15.2993, 74.1240]} // Goa coordinates
           zoom={11}
