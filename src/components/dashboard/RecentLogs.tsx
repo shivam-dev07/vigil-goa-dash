@@ -18,7 +18,10 @@ export function RecentLogs() {
         <CardContent>
           <div className="space-y-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg animate-pulse">
+              <div
+                key={i}
+                className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg animate-pulse"
+              >
                 <div className="flex items-center gap-3">
                   <div className="h-2 w-2 rounded-full bg-muted" />
                   <div className="space-y-1">
@@ -75,9 +78,9 @@ export function RecentLogs() {
       case 'check-out':
         return '🚪';
       case 'patrol-update':
-        return '🚶‍♂️';
+        return '🚶‍♂';
       case 'geofence-violation':
-        return '⚠️';
+        return '⚠';
       case 'incident-report':
         return '🚨';
       default:
@@ -98,7 +101,7 @@ export function RecentLogs() {
       case 'incident-report':
         return 'Incident Report';
       default:
-        return action.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return action.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     }
   };
 
@@ -112,7 +115,7 @@ export function RecentLogs() {
         : new Date(timestamp as string | number | Date);
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -125,27 +128,37 @@ export function RecentLogs() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        {/* ✅ Scrollable wrapper */}
+        <div className="max-h-80 overflow-y-auto space-y-4 pr-2">
           {recentLogs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No recent activity logs</p>
-              <p className="text-xs">Logs will appear here as officers perform duties</p>
+              <p className="text-xs">
+                Logs will appear here as officers perform duties
+              </p>
             </div>
           ) : (
             recentLogs.map((log) => (
-              <div key={log.id} className="flex items-start justify-between p-4 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors">
+              <div
+                key={log.id}
+                className="flex items-start justify-between p-4 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors"
+              >
                 <div className="flex items-start gap-3 flex-1">
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-lg">{getActionIcon(log.action)}</span>
-                    <div className={`h-2 w-2 rounded-full ${getStatusColor(log.action)}`} />
+                    <div
+                      className={`h-2 w-2 rounded-full ${getStatusColor(
+                        log.action
+                      )}`}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-sm font-semibold text-foreground">
                         {log.officerName}
                       </p>
-                      <Badge 
+                      <Badge
                         variant={getActionVariant(log.action)}
                         className="text-xs px-2 py-0.5"
                       >
@@ -168,10 +181,21 @@ export function RecentLogs() {
                     {formatTime(log.timestamp)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {log.timestamp && typeof log.timestamp === 'object' && 'toDate' in log.timestamp
-                      ? log.timestamp.toDate().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
-                      : new Date(log.timestamp as unknown as string).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
-                    }
+                    {log.timestamp &&
+                    typeof log.timestamp === 'object' &&
+                    'toDate' in log.timestamp
+                      ? log.timestamp
+                          .toDate()
+                          .toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                          })
+                      : new Date(
+                          log.timestamp as unknown as string
+                        ).toLocaleDateString('en-IN', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
                   </p>
                 </div>
               </div>
