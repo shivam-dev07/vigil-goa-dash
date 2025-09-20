@@ -9,7 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useRealTimeOfficers, useRealTimeCompliance } from '@/hooks/useRealTimeData';
+import { useRealTimeActivities } from '@/hooks/useActivitiesData';
 import { officersService, complianceService } from '@/services/firestore';
+import { activitiesService } from '@/services/activities';
 import { useToast } from '@/hooks/use-toast';
 import { 
   FileText, 
@@ -25,6 +27,7 @@ import {
 export default function ComplianceLogs() {
   const { officers, loading: officersLoading } = useRealTimeOfficers();
   const { logs, recentLogs, loading: logsLoading } = useRealTimeCompliance();
+  const { activities, loading: activitiesLoading } = useRealTimeActivities();
   const { toast } = useToast();
 
   // Add Officer Form State
@@ -109,6 +112,7 @@ export default function ComplianceLogs() {
 
     setIsAddingLog(true);
     try {
+      // Add to compliance logs (legacy)
       await complianceService.addComplianceLog({
         dutyId: 'manual-log', // For manual logs
         officerId: addLogForm.officerId,
@@ -121,10 +125,20 @@ export default function ComplianceLogs() {
         timestamp: new Date() as any, // Will be converted to Timestamp in service
         details: addLogForm.details,
       });
+
+      // Also add to activities collection
+      await activitiesService.addActivity({
+        title: `${addLogForm.action.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} completed`,
+        description: addLogForm.details || `Manual ${addLogForm.action} log entry`,
+        type: addLogForm.action,
+        officerId: selectedOfficer.staff_id,
+        location: "15.2993, 74.1240", // Default Goa coordinates
+        timestamp: new Date(),
+      });
       
       toast({
         title: "Log added successfully",
-        description: `Compliance log for ${selectedOfficer.staff_name} has been added`,
+        description: `Activity log for ${selectedOfficer.staff_name} has been added to both collections`,
       });
       
       setAddLogForm({
@@ -369,14 +383,85 @@ export default function ComplianceLogs() {
 
         {/* View Logs Tab */}
         <TabsContent value="view-logs" className="space-y-6">
-      <Card>
-        <CardHeader>
+          {/* Activities from Firestore */}
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                All Compliance Logs
+                Recent Activities (from Firestore)
               </CardTitle>
-        </CardHeader>
-        <CardContent>
+            </CardHeader>
+            <CardContent>
+              {activitiesLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground mt-2">Loading activities...</p>
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No activities found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Officer ID</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Timestamp</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {activities.slice(0, 20).map((activity) => (
+                        <TableRow key={activity.id}>
+                          <TableCell>
+                            <div className="font-medium">{activity.officerId}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span>{getActionIcon(activity.type)}</span>
+                              <Badge variant={getActionVariant(activity.type)}>
+                                {activity.type.replace('-', ' ')}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{activity.title}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              <span className="text-xs">{activity.location}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {activity.description || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {formatTime(activity.timestamp)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Legacy Compliance Logs */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Legacy Compliance Logs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               {logsLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -431,8 +516,8 @@ export default function ComplianceLogs() {
                   </Table>
                 </div>
               )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

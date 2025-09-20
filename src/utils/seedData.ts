@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 import { officersService, dutiesService, complianceService } from '@/services/firestore';
+import { activitiesService } from '@/services/activities';
 
 // Seed data for development/demo
 export const seedOfficers = async () => {
@@ -211,10 +212,105 @@ export const seedComplianceLogs = async () => {
   }
 };
 
+export const seedActivities = async () => {
+  // Get officers from database
+  const officers = await officersService.getOfficers();
+  
+  if (officers.length === 0) {
+    console.error('No officers found. Please seed officers first.');
+    return;
+  }
+
+  const activities = [
+    {
+      title: 'Check-in completed',
+      description: 'Successfully checked in for duty',
+      type: 'check-in' as const,
+      officerId: officers[0].staff_id,
+      dutyId: 'demo-duty-1',
+      location: '15.4909, 73.8278',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+    },
+    {
+      title: 'Check-out completed',
+      description: 'Successfully checked out from duty',
+      type: 'check-out' as const,
+      officerId: officers[0].staff_id,
+      dutyId: 'demo-duty-1',
+      location: '15.4909, 73.8278',
+      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
+    },
+    {
+      title: 'Patrol Update',
+      description: 'Completed patrol route successfully',
+      type: 'patrol-update' as const,
+      officerId: officers[1]?.staff_id || officers[0].staff_id,
+      dutyId: 'demo-duty-2',
+      location: '15.2700, 73.9500',
+      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+    },
+    {
+      title: 'Geofence Violation',
+      description: 'Officer left assigned patrol area',
+      type: 'geofence-violation' as const,
+      officerId: officers[2]?.staff_id || officers[0].staff_id,
+      dutyId: 'demo-duty-3',
+      location: '15.5400, 73.7500',
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+    },
+    {
+      title: 'Incident Report',
+      description: 'Minor traffic violation reported and resolved',
+      type: 'incident-report' as const,
+      officerId: officers[0].staff_id,
+      dutyId: 'demo-duty-1',
+      location: '15.4859, 73.8228',
+      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
+    },
+    {
+      title: 'Check-in completed',
+      description: 'On-time check-in for night shift',
+      type: 'check-in' as const,
+      officerId: officers[1]?.staff_id || officers[0].staff_id,
+      dutyId: 'demo-duty-2',
+      location: '15.2700, 73.9500',
+      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+    },
+    {
+      title: 'Patrol Update',
+      description: 'Routine patrol check completed',
+      type: 'patrol-update' as const,
+      officerId: officers[2]?.staff_id || officers[0].staff_id,
+      dutyId: 'demo-duty-3',
+      location: '15.3960, 73.8157',
+      timestamp: new Date(Date.now() - 7 * 60 * 60 * 1000), // 7 hours ago
+    },
+    {
+      title: 'Check-out completed',
+      description: 'End of shift check-out',
+      type: 'check-out' as const,
+      officerId: officers[1]?.staff_id || officers[0].staff_id,
+      dutyId: 'demo-duty-2',
+      location: '15.2700, 73.9500',
+      timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
+    },
+  ];
+
+  try {
+    for (const activity of activities) {
+      await activitiesService.addActivity(activity);
+    }
+    console.log('Activities seeded successfully');
+  } catch (error) {
+    console.error('Error seeding activities:', error);
+  }
+};
+
 export const initializeDemoData = async () => {
   console.log('Initializing demo data...');
   await seedOfficers();
   await seedDuties();
   await seedComplianceLogs();
+  await seedActivities();
   console.log('Demo data initialization complete');
 };

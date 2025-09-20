@@ -6,6 +6,7 @@ import { ActiveDutiesList } from '@/components/dashboard/ActiveDutiesList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRealTimeOfficers, useRealTimeDuties, useRealTimeCompliance } from '@/hooks/useRealTimeData';
+import { useRealTimeRecentActivities } from '@/hooks/useActivitiesData';
 import { initializeDemoData } from '@/utils/seedData';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const { officers, loading: officersLoading, error: officersError } = useRealTimeOfficers();
   const { duties, activeDuties, completedDuties, loading: dutiesLoading, error: dutiesError } = useRealTimeDuties();
   const { logs, recentLogs, loading: logsLoading, error: logsError } = useRealTimeCompliance();
+  const { recentActivities, loading: activitiesLoading } = useRealTimeRecentActivities();
   const { toast } = useToast();
   
   const [selectedDutyId, setSelectedDutyId] = useState<string | undefined>();
@@ -83,7 +85,7 @@ export default function Dashboard() {
             {currentDate} • {currentTime}
           </p>
         </div>
-        {recentLogs.length === 0 && (
+        {recentActivities.length === 0 && (
           <Button 
             onClick={handleInitializeDemoData}
             variant="outline"
@@ -117,9 +119,9 @@ export default function Dashboard() {
         />
         <StatsCard
           title="Recent Activities"
-          value={recentLogs.length}
+          value={recentActivities.length}
           icon={AlertTriangle}
-          loading={logsLoading}
+          loading={activitiesLoading}
         />
       </div>
 

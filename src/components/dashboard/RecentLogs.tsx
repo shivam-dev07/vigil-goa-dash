@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin } from 'lucide-react';
-import { useRealTimeCompliance } from '@/hooks/useRealTimeData';
+import { useRealTimeRecentActivities } from '@/hooks/useActivitiesData';
+import { Activity } from '@/services/activities';
 
 export function RecentLogs() {
-  const { recentLogs, loading } = useRealTimeCompliance();
+  const { recentActivities, loading } = useRealTimeRecentActivities();
 
   if (loading) {
     return (
@@ -41,8 +42,8 @@ export function RecentLogs() {
     );
   }
 
-  const getStatusColor = (action: string) => {
-    switch (action) {
+  const getStatusColor = (type: string) => {
+    switch (type) {
       case 'check-in':
       case 'check-out':
       case 'patrol-update':
@@ -56,8 +57,8 @@ export function RecentLogs() {
     }
   };
 
-  const getActionVariant = (action: string) => {
-    switch (action) {
+  const getActionVariant = (type: string) => {
+    switch (type) {
       case 'geofence-violation':
       case 'incident-report':
         return 'destructive' as const;
@@ -71,16 +72,16 @@ export function RecentLogs() {
     }
   };
 
-  const getActionIcon = (action: string) => {
-    switch (action) {
+  const getActionIcon = (type: string) => {
+    switch (type) {
       case 'check-in':
         return '✅';
       case 'check-out':
         return '🚪';
       case 'patrol-update':
-        return '🚶‍♂';
+        return '🚶‍♂️';
       case 'geofence-violation':
-        return '⚠';
+        return '⚠️';
       case 'incident-report':
         return '🚨';
       default:
@@ -88,8 +89,8 @@ export function RecentLogs() {
     }
   };
 
-  const getActionLabel = (action: string) => {
-    switch (action) {
+  const getActionLabel = (type: string) => {
+    switch (type) {
       case 'check-in':
         return 'Check In';
       case 'check-out':
@@ -101,7 +102,7 @@ export function RecentLogs() {
       case 'incident-report':
         return 'Incident Report';
       default:
-        return action.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+        return type.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     }
   };
 
@@ -130,7 +131,7 @@ export function RecentLogs() {
       <CardContent>
         {/* ✅ Scrollable wrapper */}
         <div className="max-h-80 overflow-y-auto space-y-4 pr-2">
-          {recentLogs.length === 0 ? (
+          {recentActivities.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No recent activity logs</p>
@@ -139,59 +140,62 @@ export function RecentLogs() {
               </p>
             </div>
           ) : (
-            recentLogs.map((log) => (
+            recentActivities.map((activity) => (
               <div
-                key={log.id}
+                key={activity.id}
                 className="flex items-start justify-between p-4 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors"
               >
                 <div className="flex items-start gap-3 flex-1">
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-lg">{getActionIcon(log.action)}</span>
+                    <span className="text-lg">{getActionIcon(activity.type)}</span>
                     <div
                       className={`h-2 w-2 rounded-full ${getStatusColor(
-                        log.action
+                        activity.type
                       )}`}
                     />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-sm font-semibold text-foreground">
-                        {log.officerName}
+                        {activity.officerId}
                       </p>
                       <Badge
-                        variant={getActionVariant(log.action)}
+                        variant={getActionVariant(activity.type)}
                         className="text-xs px-2 py-0.5"
                       >
-                        {getActionLabel(log.action)}
+                        {getActionLabel(activity.type)}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
                       <MapPin className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">{log.location.name}</span>
+                      <span className="truncate">{activity.location}</span>
                     </p>
-                    {log.details && (
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {log.details}
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {activity.title}
+                    </p>
+                    {activity.description && (
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                        {activity.description}
                       </p>
                     )}
                   </div>
                 </div>
                 <div className="text-right ml-4 flex-shrink-0">
                   <p className="text-xs text-muted-foreground font-medium">
-                    {formatTime(log.timestamp)}
+                    {formatTime(activity.timestamp)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {log.timestamp &&
-                    typeof log.timestamp === 'object' &&
-                    'toDate' in log.timestamp
-                      ? log.timestamp
+                    {activity.timestamp &&
+                    typeof activity.timestamp === 'object' &&
+                    'toDate' in activity.timestamp
+                      ? activity.timestamp
                           .toDate()
                           .toLocaleDateString('en-IN', {
                             month: 'short',
                             day: 'numeric',
                           })
                       : new Date(
-                          log.timestamp as unknown as string
+                          activity.timestamp as unknown as string
                         ).toLocaleDateString('en-IN', {
                           month: 'short',
                           day: 'numeric',
