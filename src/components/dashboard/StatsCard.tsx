@@ -17,27 +17,27 @@ interface StatsCardProps {
 export function StatsCard({ title, value, icon: Icon, trend, loading = false, className }: StatsCardProps) {
   return (
     <Card className={cn("transition-all duration-200 hover:shadow-elevation", className)}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      <CardContent className="p-3 h-full">
+        <div className="flex items-center justify-between h-full">
+          <div className="space-y-1 flex-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
             {loading ? (
-              <div className="h-8 w-16 bg-muted animate-pulse rounded" />
+              <div className="h-6 w-12 bg-muted animate-pulse rounded" />
             ) : (
-              <p className="text-3xl font-bold text-foreground">{value}</p>
+              <p className="text-2xl font-bold text-foreground">{value}</p>
             )}
             {trend && !loading && (
               <p className={cn(
-                "text-sm flex items-center gap-1",
+                "text-xs flex items-center gap-1",
                 trend.isPositive ? "text-success" : "text-destructive"
               )}>
                 <span>{trend.isPositive ? "+" : ""}{trend.value}%</span>
-                <span className="text-muted-foreground">from last month</span>
+                <span className="text-muted-foreground">vs last month</span>
               </p>
             )}
           </div>
-          <div className="h-12 w-12 bg-primary-light rounded-lg flex items-center justify-center">
-            <Icon className="h-6 w-6 text-primary" />
+          <div className="h-8 w-8 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+            <Icon className="h-4 w-4 text-primary" />
           </div>
         </div>
       </CardContent>

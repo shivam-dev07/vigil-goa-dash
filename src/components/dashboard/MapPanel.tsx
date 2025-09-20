@@ -5,11 +5,12 @@ import { InteractiveMap } from '@/components/maps/InteractiveMap';
 interface MapPanelProps {
   selectedDutyId?: string;
   onDutyFocus?: (duty: any) => void;
+  height?: string;
 }
 
-export function MapPanel({ selectedDutyId, onDutyFocus }: MapPanelProps) {
+export function MapPanel({ selectedDutyId, onDutyFocus, height = "400px" }: MapPanelProps) {
   return (
-    <Card className="h-[400px]">
+    <Card style={{ height }}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">

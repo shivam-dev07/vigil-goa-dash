@@ -97,56 +97,62 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Cards - Compact size to prevent overlapping */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatsCard
           title="Total Officers"
           value={officers.length}
           icon={Users}
           loading={officersLoading}
+          className="h-16 p-3"
         />
         <StatsCard
           title="Active Duties"
           value={activeDuties.length}
           icon={Shield}
           loading={dutiesLoading}
+          className="h-16 p-3"
         />
         <StatsCard
           title="Completed Duties"
           value={completedDuties.length}
           icon={CheckCircle}
           loading={dutiesLoading}
+          className="h-16 p-3"
         />
         <StatsCard
           title="Recent Activities"
           value={recentActivities.length}
           icon={AlertTriangle}
           loading={activitiesLoading}
+          className="h-16 p-3"
         />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map Panel */}
-        <div className="lg:col-span-2">
+      {/* Main Content Grid - Map takes more space */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        {/* Map Panel - Takes 3/4 of the width */}
+        <div className="xl:col-span-3">
           <MapPanel 
             selectedDutyId={selectedDutyId}
             onDutyFocus={handleDutyFocus}
+            height="600px"
           />
         </div>
 
-        {/* Active Duties List */}
-        <div className="lg:col-span-1">
+        {/* Active Duties List - Takes 1/4 of the width */}
+        <div className="xl:col-span-1">
           <ActiveDutiesList 
             onDutyClick={handleDutyClick}
             selectedDutyId={selectedDutyId}
+            maxHeight="600px"
           />
         </div>
       </div>
 
-      {/* Recent Logs */}
+      {/* Recent Logs - Reduced height */}
       <div className="grid grid-cols-1">
-        <RecentLogs />
+        <RecentLogs maxHeight="300px" />
       </div>
     </div>
   );

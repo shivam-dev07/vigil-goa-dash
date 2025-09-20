@@ -10,9 +10,10 @@ import { useState } from 'react';
 interface ActiveDutiesListProps {
   onDutyClick?: (duty: any) => void;
   selectedDutyId?: string;
+  maxHeight?: string;
 }
 
-export function ActiveDutiesList({ onDutyClick, selectedDutyId }: ActiveDutiesListProps) {
+export function ActiveDutiesList({ onDutyClick, selectedDutyId, maxHeight = "400px" }: ActiveDutiesListProps) {
   const { duties, loading } = useRealTimeDuties();
   const { officers } = useRealTimeOfficers();
 
@@ -114,7 +115,7 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId }: ActiveDutiesLi
 
   if (loading) {
     return (
-      <Card className="h-[400px]">
+      <Card style={{ height: maxHeight }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
@@ -148,7 +149,7 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId }: ActiveDutiesLi
   }
 
   return (
-    <Card className="h-[400px]">
+    <Card style={{ height: maxHeight }}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-primary" />

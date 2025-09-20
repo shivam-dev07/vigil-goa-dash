@@ -4,12 +4,16 @@ import { Clock, MapPin } from 'lucide-react';
 import { useRealTimeRecentActivities } from '@/hooks/useActivitiesData';
 import { Activity } from '@/services/activities';
 
-export function RecentLogs() {
+interface RecentLogsProps {
+  maxHeight?: string;
+}
+
+export function RecentLogs({ maxHeight = "400px" }: RecentLogsProps) {
   const { recentActivities, loading } = useRealTimeRecentActivities();
 
   if (loading) {
     return (
-      <Card>
+      <Card style={{ height: maxHeight }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
@@ -121,7 +125,7 @@ export function RecentLogs() {
   };
 
   return (
-    <Card>
+    <Card style={{ height: maxHeight }}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary" />

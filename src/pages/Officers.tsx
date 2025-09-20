@@ -36,15 +36,30 @@ export default function Officers() {
       console.log('History & Officers - Errors:', { dutiesError, officersError });
     }
 
-  // Get officer name by UID
-  const getOfficerName = (officerUid: string) => {
+  // Get officer name by UID (handles both single UID and array of UIDs)
+  const getOfficerName = (officerUid: string | string[]) => {
     if (!officerUid || !officers) return 'Unknown Officer';
+    
+    // Handle array of UIDs (new format)
+    if (Array.isArray(officerUid)) {
+      if (officerUid.length === 0) return 'No Officers Assigned';
+      if (officerUid.length === 1) {
+        const officer = officers.find(o => o && o.id === officerUid[0]);
+        return officer ? (officer.staff_name || 'Unknown Officer') : 'Unknown Officer';
+      }
+      // Multiple officers - return first officer name + count
+      const firstOfficer = officers.find(o => o && o.id === officerUid[0]);
+      const firstOfficerName = firstOfficer ? (firstOfficer.staff_name || 'Unknown Officer') : 'Unknown Officer';
+      return `${firstOfficerName} +${officerUid.length - 1} more`;
+    }
+    
+    // Handle single UID (legacy format)
     const officer = officers.find(o => o && o.id === officerUid);
     return officer ? (officer.staff_name || 'Unknown Officer') : 'Unknown Officer';
   };
 
-  // Get officer details by UID
-  const getOfficerDetails = (officerUid: string) => {
+  // Get officer details by UID (handles both single UID and array of UIDs)
+  const getOfficerDetails = (officerUid: string | string[]) => {
     if (!officerUid || !officers) {
       return {
         name: 'Unknown Officer',
@@ -53,6 +68,34 @@ export default function Officers() {
       };
     }
     
+    // Handle array of UIDs (new format)
+    if (Array.isArray(officerUid)) {
+      if (officerUid.length === 0) {
+        return {
+          name: 'No Officers Assigned',
+          designation: 'Unknown',
+          staffId: 'Unknown'
+        };
+      }
+      
+      // Get details for the first officer
+      const firstOfficer = officers.find(o => o && o.id === officerUid[0]);
+      if (!firstOfficer) {
+        return {
+          name: 'Unknown Officer',
+          designation: 'Unknown',
+          staffId: 'Unknown'
+        };
+      }
+      
+      return {
+        name: firstOfficer.staff_name || 'Unknown Officer',
+        designation: firstOfficer.staff_designation || 'Unknown',
+        staffId: firstOfficer.staff_id || 'Unknown'
+      };
+    }
+    
+    // Handle single UID (legacy format)
     const officer = officers.find(o => o && o.id === officerUid);
     return officer ? {
       name: officer.staff_name || 'Unknown Officer',
@@ -78,7 +121,7 @@ export default function Officers() {
 
     try {
       const testDuty = {
-        officerUid: officers[0].id!,
+        officerUids: [officers[0].id!], // Use array format for new duties
         type: 'patrol' as const,
         location: {
           polygon: [
@@ -137,10 +180,16 @@ export default function Officers() {
   const filteredDuties = duties.filter(duty => {
     if (!duty) return false;
     
-    // Get officer name for search
-    const officerName = getOfficerName(duty.officerUid || '');
+    // Get officer UID(s) - handle both old and new data structures
+    const officerUids = duty.officerUids || (duty as any).officerUid;
     
-    const matchesSearch = (duty.officerUid || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    // Get officer name for search
+    const officerName = getOfficerName(officerUids || '');
+    
+    // Create search string from officer UIDs
+    const officerUidString = Array.isArray(officerUids) ? officerUids.join(' ') : (officerUids || '');
+    
+    const matchesSearch = officerUidString.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (duty.type || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (duty.comments || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          officerName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -305,7 +354,10 @@ export default function Officers() {
                         try {
                           if (!duty || !duty.id) return null;
                           
-                          const officer = getOfficerDetails(duty.officerUid || '');
+                          // Get officer UID(s) - handle both old and new data structures
+                          const officerUids = duty.officerUids || (duty as any).officerUid;
+                          const officer = getOfficerDetails(officerUids || '');
+                          
                           return (
                             <TableRow key={duty.id || `duty-${index}`}>
                               <TableCell>
@@ -314,6 +366,12 @@ export default function Officers() {
                                   <span className="text-xs text-muted-foreground">
                                     {officer.designation || 'Unknown'} • {officer.staffId || 'Unknown'}
                                   </span>
+                                  {/* Show additional officers if multiple assigned */}
+                                  {Array.isArray(officerUids) && officerUids.length > 1 && (
+                                    <span className="text-xs text-blue-600">
+                                      +{officerUids.length - 1} more officer{officerUids.length > 2 ? 's' : ''}
+                                    </span>
+                                  )}
                                 </div>
                               </TableCell>
                               <TableCell>

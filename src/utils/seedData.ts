@@ -55,7 +55,7 @@ export const seedDuties = async () => {
 
   const duties = [
     {
-      officerUid: officers[0].id!, // Use the actual officer ID from database
+      officerUids: [officers[0].id!], // Use array format for consistency
       type: 'naka' as const,
       location: {
         polygon: [
@@ -72,7 +72,7 @@ export const seedDuties = async () => {
       comments: 'Night shift naka duty at Panaji Market Square'
     },
     {
-      officerUid: officers[1].id!, // Use the actual officer ID from database
+      officerUids: [officers[1].id!], // Use array format for consistency
       type: 'patrol' as const,
       location: {
         polygon: [
@@ -89,7 +89,7 @@ export const seedDuties = async () => {
       comments: 'Beach road patrol duty'
     },
     {
-      officerUid: officers[2]?.id || officers[0].id!, // Use third officer or fallback
+      officerUids: [officers[2]?.id || officers[0].id!], // Use array format for consistency
       type: 'naka' as const,
       location: {
         polygon: [
