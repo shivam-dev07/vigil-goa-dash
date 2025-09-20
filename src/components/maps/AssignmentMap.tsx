@@ -126,7 +126,7 @@ export function AssignmentMap({
 
       // Create duty icon
       const dutyIcon = L.divIcon({
-        html: duty.type === 'naka' ? '🛑' : '🚶',
+        html: duty.type === 'naka' ? 'N' : 'P',
         iconSize: [30, 30],
         className: 'duty-marker'
       });

@@ -156,7 +156,7 @@ export function InteractiveMap({
 
       // Create duty icon based on type
       const dutyIcon = L.divIcon({
-        html: duty.type === 'naka' ? '🛑' : '🚶',
+        html: duty.type === 'naka' ? 'N' : 'P',
         iconSize: [30, 30],
         className: 'duty-marker'
       });
@@ -169,7 +169,7 @@ export function InteractiveMap({
       // Create marker with appropriate size based on selection
       const marker = L.marker(centerPoint, { 
         icon: L.divIcon({
-          html: duty.type === 'naka' ? '🛑' : '🚶‍♂️',
+          html: duty.type === 'naka' ? 'N' : 'P',
           iconSize: markerSize,
           className: markerClass
         })
