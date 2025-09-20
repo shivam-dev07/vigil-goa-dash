@@ -112,6 +112,11 @@ export function InteractiveMap({
   useEffect(() => {
     if (!mapInstanceRef.current || !markersRef.current) return;
 
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[InteractiveMap] useEffect triggered - duties:', duties?.length || 0, 'officers:', officers?.length || 0);
+    }
+
     // Clear existing duty markers
     markersRef.current.clearLayers();
 
@@ -169,6 +174,7 @@ export function InteractiveMap({
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[InteractiveMap] duties total:', duties.length, 'active after filter:', activeDuties.length);
+      console.log('[InteractiveMap] Active duties:', activeDuties.map(d => ({ id: d.id, type: d.type, status: d.status })));
     }
 
     // Add markers for each active duty
@@ -360,6 +366,39 @@ export function InteractiveMap({
       mapInstanceRef.current?.invalidateSize();
     }, 50);
   }, [duties, officers, selectedDutyId]);
+
+  // Additional effect to handle map visibility issues on page switches
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && mapInstanceRef.current) {
+        setTimeout(() => {
+          mapInstanceRef.current?.invalidateSize();
+          // Force re-render of markers after page switch
+          if (markersRef.current && duties.length > 0) {
+            const event = new Event('resize');
+            window.dispatchEvent(event);
+          }
+        }, 100);
+      }
+    };
+
+    // Also handle window focus events
+    const handleFocus = () => {
+      if (mapInstanceRef.current) {
+        setTimeout(() => {
+          mapInstanceRef.current?.invalidateSize();
+        }, 50);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [duties]);
 
   // Focus on selected duty
   useEffect(() => {

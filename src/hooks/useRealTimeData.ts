@@ -36,8 +36,12 @@ export const useRealTimeDuties = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+    
     const unsubscribe = dutiesService.onDutiesSnapshot(
       (data) => {
+        if (!mounted) return; // Prevent state updates if component unmounted
+        
         if (process.env.NODE_ENV === 'development') {
           console.log('useRealTimeDuties - Received duties:', data.length, data);
         }
@@ -47,7 +51,10 @@ export const useRealTimeDuties = () => {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
   // Auto-update expired duties
