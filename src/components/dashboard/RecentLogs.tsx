@@ -28,8 +28,7 @@ export function RecentLogs({ maxHeight = "600px" }: RecentLogsProps) {
                 className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg animate-pulse"
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-muted" />
-                  <div className="space-y-1">
+                  <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
                     <div className="h-4 w-32 bg-muted rounded" />
                     <div className="h-3 w-24 bg-muted rounded" />
                   </div>
@@ -128,13 +127,13 @@ export function RecentLogs({ maxHeight = "600px" }: RecentLogsProps) {
     <Card style={{ height: maxHeight }}>
       <CardHeader className="py-3 px-4">
         <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-primary" />
-          Recent Activity Logs
+          <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+          <span className="text-sm sm:text-base">Recent Activity Logs</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0 h-[calc(100%-64px)] overflow-hidden">
         {/* ✅ Height-aware scrollable wrapper with proper alignment */}
-        <div className="h-full overflow-y-auto space-y-3 pr-2">
+        <div className="h-full overflow-y-auto space-y-2 sm:space-y-3 pr-2">
           {recentActivities.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -147,9 +146,9 @@ export function RecentLogs({ maxHeight = "600px" }: RecentLogsProps) {
             recentActivities.map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-start justify-between p-4 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors w-full"
+                className="flex items-start justify-between p-3 sm:p-4 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors w-full"
               >
-                <div className="flex items-start gap-3 flex-1">
+                <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-lg">{getActionIcon(activity.type)}</span>
                     <div
@@ -170,12 +169,12 @@ export function RecentLogs({ maxHeight = "600px" }: RecentLogsProps) {
                         {getActionLabel(activity.type)}
                       </Badge>
                     </div>
+                    <h4 className="font-medium text-xs sm:text-sm text-foreground truncate">
+                      {activity.title}
+                    </h4>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
                       <MapPin className="h-3 w-3 flex-shrink-0" />
                       <span className="truncate">{activity.location}</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {activity.title}
                     </p>
                     {activity.description && (
                       <p className="text-xs text-muted-foreground leading-relaxed mt-1">
@@ -184,8 +183,8 @@ export function RecentLogs({ maxHeight = "600px" }: RecentLogsProps) {
                     )}
                   </div>
                 </div>
-                <div className="text-right ml-4 flex-shrink-0">
-                  <p className="text-xs text-muted-foreground font-medium">
+                <div className="text-right ml-2 sm:ml-4 flex-shrink-0">
+                  <p className="text-xs text-muted-foreground font-medium hidden sm:block">
                     {formatTime(activity.timestamp)}
                   </p>
                   <p className="text-xs text-muted-foreground">

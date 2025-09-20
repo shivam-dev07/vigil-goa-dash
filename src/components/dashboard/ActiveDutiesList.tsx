@@ -1,10 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MapPin, Clock, User, Shield, Circle } from 'lucide-react';
 import { useRealTimeDuties } from '@/hooks/useRealTimeData';
 import { useRealTimeOfficers } from '@/hooks/useRealTimeData';
+import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 interface ActiveDutiesListProps {
@@ -151,8 +151,8 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId, maxHeight = "400
       <Card style={{ height: maxHeight }}>
         <CardHeader className="py-3 px-4">
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            Active Duties
+            <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <span className="text-sm sm:text-base">Active Duties</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -160,14 +160,14 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId, maxHeight = "400
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg animate-pulse"
+                className={cn(
+                  "flex items-start justify-between p-2 sm:p-3 rounded-lg border transition-colors cursor-pointer",
+                  "bg-card border-border hover:bg-accent/50"
+                )}
               >
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-muted" />
-                  <div className="space-y-1">
-                    <div className="h-4 w-32 bg-muted rounded" />
-                    <div className="h-3 w-24 bg-muted rounded" />
-                  </div>
+                <div className="space-y-1">
+                  <div className="h-4 w-32 bg-muted rounded" />
+                  <div className="h-3 w-24 bg-muted rounded" />
                 </div>
                 <div className="space-y-1">
                   <div className="h-4 w-16 bg-muted rounded" />
@@ -185,12 +185,12 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId, maxHeight = "400
     <Card style={{ height: maxHeight }}>
       <CardHeader className="py-3 px-4">
         <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-primary" />
-          Active Duties ({activeDuties.length})
+          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+          <span className="text-sm sm:text-base">Active Duties ({activeDuties.length})</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100%-64px)] p-4">
+        <ScrollArea className="h-[calc(100%-64px)] p-2 sm:p-4">
           {activeDuties.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
               <Shield className="h-8 w-8 mb-2" />
@@ -204,42 +204,44 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId, maxHeight = "400
                   const isSelected = selectedDutyId === duty.id;
                 
                 return (
-                  <Button
+                  <div
                     key={duty.id}
-                    variant={isSelected ? "default" : "ghost"}
-                    className={`w-full justify-start p-3 h-auto ${
-                      isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary'
-                    }`}
+                    className={cn(
+                      "flex items-start justify-between p-2 sm:p-3 rounded-lg border transition-colors cursor-pointer",
+                      isSelected 
+                        ? "bg-primary/10 border-primary shadow-sm" 
+                        : "bg-card border-border hover:bg-accent/50"
+                    )}
                     onClick={() => onDutyClick?.(duty)}
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          {duty.type === 'naka' ? (
-                            <Circle className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <MapPin className="h-4 w-4 text-blue-500" />
-                          )}
-                          <div className="text-left">
-                            <p className="font-medium text-sm">{officer.name}</p>
-                            <p className="text-xs opacity-70">{officer.designation}</p>
-                          </div>
-                        </div>
+                    <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                      <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-primary">
+                          {duty.type === 'naka' ? 'N' : 'P'}
+                        </span>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <Badge 
-                          variant={getStatusVariant(duty.status)} 
-                          className={`text-xs ${getStatusColor(duty.status)}`}
-                        >
-                          {duty.status?.toUpperCase() || 'UNKNOWN'}
-                        </Badge>
-                        <div className="flex items-center gap-1 text-xs opacity-70">
-                          <Clock className="h-3 w-3" />
-                          <span>{formatTime(duty.startTime)}</span>
-                        </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-xs sm:text-sm text-foreground truncate">{officer.name}</h4>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {officer.designation} • {officer.staffId}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 hidden sm:block">
+                          {formatDate(duty.startTime)} at {formatTime(duty.startTime)}
+                        </p>
                       </div>
                     </div>
-                  </Button>
+                    <div className="text-right flex-shrink-0 ml-1 sm:ml-2">
+                      <Badge 
+                        variant={duty.type === 'naka' ? 'default' : 'secondary'}
+                        className="text-xs mb-1 hidden sm:inline-flex"
+                      >
+                        {duty.type?.toUpperCase()}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground hidden sm:block">
+                        {duty.status?.toUpperCase() || 'UNKNOWN'}
+                      </p>
+                    </div>
+                  </div>
                 );
                 } catch (error) {
                   console.error('Error processing duty:', duty.id, error);

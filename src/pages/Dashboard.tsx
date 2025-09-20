@@ -97,8 +97,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Stats Cards - Polished spacing */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards - Responsive grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatsCard
           title="Total Officers"
           value={officers.length}
@@ -129,30 +129,30 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Main Content Grid - Map takes more space */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
-        {/* Map Panel - Takes 3/4 of the width */}
-        <div className="xl:col-span-3">
+        {/* Main Content Grid - Responsive layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-5">
+          {/* Map Panel - Responsive width */}
+          <div className="lg:col-span-2 xl:col-span-3">
           <MapPanel 
             selectedDutyId={selectedDutyId}
             onDutyFocus={handleDutyFocus}
-            height="600px"
+              height="500px"
           />
         </div>
 
-        {/* Active Duties List - Takes 1/4 of the width */}
-        <div className="xl:col-span-1">
+          {/* Active Duties List - Responsive width */}
+          <div className="lg:col-span-1 xl:col-span-1">
           <ActiveDutiesList 
             onDutyClick={handleDutyClick}
             selectedDutyId={selectedDutyId}
-            maxHeight="600px"
+              maxHeight="500px"
           />
         </div>
       </div>
 
-      {/* Recent Logs */}
-      <div className="grid grid-cols-1">
-        <RecentLogs maxHeight="380px" />
+        {/* Recent Logs - Responsive height */}
+        <div className="grid grid-cols-1">
+          <RecentLogs maxHeight="320px" />
       </div>
     </div>
   );

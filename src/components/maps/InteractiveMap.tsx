@@ -124,7 +124,10 @@ export function InteractiveMap({
         return String(v ?? '').trim();
       }).filter((v: string) => v.length > 0);
 
-      let dutyOfficers = officers.filter(o => o && ids.includes(String(o.id || '').trim()));
+        let dutyOfficers = officers.filter(o => o && (
+        ids.includes(String(o.id || '').trim()) ||
+        ids.includes(String((o as any).docId || '').trim())
+      ));
       if (dutyOfficers.length === 0) {
         dutyOfficers = officers.filter(o => o && ids.includes(String(o.staff_id || '').trim()));
       }
@@ -346,7 +349,7 @@ export function InteractiveMap({
     try {
       if (mapInstanceRef.current && allPoints.length > 0 && !selectedDutyId) {
         const bounds = L.latLngBounds(allPoints as any);
-        mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        mapInstanceRef.current.fitBounds(bounds, { padding: [20, 20], maxZoom: 13 });
       }
     } catch (e) {
       // no-op

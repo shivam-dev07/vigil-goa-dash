@@ -20,11 +20,11 @@ export function StatsCard({ title, value, icon: Icon, trend, loading = false, cl
       <CardContent className="p-4 h-full">
         <div className="flex items-center justify-between h-full">
           <div className="space-y-1 flex-1 min-w-0">
-            <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
             {loading ? (
               <div className="h-6 w-12 bg-muted animate-pulse rounded" />
             ) : (
-              <p className="text-2xl font-bold text-foreground">{value}</p>
+              <p className="text-xl sm:text-2xl font-bold text-foreground">{value}</p>
             )}
             {trend && !loading && (
               <p className={cn(
@@ -36,8 +36,8 @@ export function StatsCard({ title, value, icon: Icon, trend, loading = false, cl
               </p>
             )}
           </div>
-          <div className="h-9 w-9 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
-            <Icon className="h-5 w-5 text-primary" />
+          <div className="h-8 w-8 sm:h-9 sm:w-9 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </div>
         </div>
       </CardContent>

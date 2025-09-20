@@ -257,40 +257,6 @@ export function DutyAssignmentForm() {
                   {availableOfficers.length} available
                 </Badge>
               </div>
-              
-              {/* Quick Add Dropdown */}
-              <div className="space-y-2">
-                <Select 
-                  value="" 
-                  onValueChange={(officerId) => {
-                    if (officerId && !formData.officerIds.includes(officerId)) {
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        officerIds: [...prev.officerIds, officerId] 
-                      }));
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Quick add officer..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredOfficers
-                      .filter(officer => !formData.officerIds.includes(officer.id!))
-                      .map((officer) => (
-                        <SelectItem key={officer.id} value={officer.id!}>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">{officer.staff_id}</Badge>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{officer.staff_name}</span>
-                              <span className="text-xs text-muted-foreground">{officer.staff_designation}</span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               {/* Selected Officers Display */}
               {formData.officerIds.length > 0 && (
@@ -347,10 +313,10 @@ export function DutyAssignmentForm() {
                 </div>
               )}
 
-              {/* Detailed Selection with Checkboxes */}
+              {/* Officer Selection with Search */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">All Available Officers</Label>
+                  <Label className="text-sm font-medium">Available Officers</Label>
                   <Button
                     type="button"
                     variant="outline"

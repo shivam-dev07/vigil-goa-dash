@@ -14,25 +14,25 @@ export function MapPanel({ selectedDutyId, onDutyFocus, height = "400px" }: MapP
   return (
     <Card style={{ height }}>
       <CardHeader className="py-3 px-4">
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
-            Live Duty Map
+            <span className="text-sm sm:text-base">Live Duty Map</span>
             <span className="text-xs text-muted-foreground">(duties: {duties.length})</span>
           </div>
-          {/* Legend */}
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-white border-2 border-gray-800 flex items-center justify-center text-xs font-bold text-gray-800">
+          {/* Legend - Responsive */}
+          <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white border-2 border-gray-800 flex items-center justify-center text-xs font-bold text-gray-800">
                 N
               </div>
-              <span className="text-muted-foreground">Naka</span>
+              <span className="text-muted-foreground hidden sm:inline">Naka</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-white border-2 border-gray-800 flex items-center justify-center text-xs font-bold text-gray-800">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white border-2 border-blue-600 flex items-center justify-center text-xs font-bold text-blue-600">
                 P
               </div>
-              <span className="text-muted-foreground">Patrol</span>
+              <span className="text-muted-foreground hidden sm:inline">Patrol</span>
             </div>
           </div>
         </CardTitle>
