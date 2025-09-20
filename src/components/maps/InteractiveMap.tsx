@@ -146,33 +146,45 @@ export function InteractiveMap({
       };
     };
 
-    // Filter duties to show only active/incomplete duties that haven't expired
+    // Filter duties: show any with a valid polygon that are not completed (ignore endTime to avoid hiding fresh assignments)
     const activeDuties = duties.filter(duty => {
-      if (!duty || !duty.location || !duty.location.polygon || duty.location.polygon.length === 0) return false;
-      
-      // Don't show completed duties
+      if (!duty || !duty.location || !Array.isArray(duty.location.polygon) || duty.location.polygon.length === 0) return false;
       if (duty.status === 'complete' || duty.status === 'completed') return false;
-      
-      // Check if duty has expired
-      if (duty.endTime) {
-        const endTime = new Date(duty.endTime);
-        const now = new Date();
-        if (endTime < now) return false; // Duty has expired
-      }
-      
       return true;
     });
+
+    // Collect all points to compute bounds later (include centers and polygon vertices)
+    const allPoints: [number, number][] = [];
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[InteractiveMap] duties total:', duties.length, 'active after filter:', activeDuties.length);
+    }
 
     // Add markers for each active duty
     activeDuties.forEach(duty => {
       try {
 
-      // Get center point from polygon
-      const centerLat = duty.location.polygon.reduce((sum, point) => sum + point.lat, 0) / duty.location.polygon.length;
-      const centerLng = duty.location.polygon.reduce((sum, point) => sum + point.lng, 0) / duty.location.polygon.length;
+      // Get center point from polygon (coerce to numbers and skip invalid)
+      const validPoints = duty.location.polygon
+        .map((p: any) => ({ lat: Number(p?.lat), lng: Number(p?.lng) }))
+        .filter((p: any) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+      if (validPoints.length === 0) return; // skip invalid geometry
+      const centerLat = validPoints.reduce((sum: number, p: any) => sum + p.lat, 0) / validPoints.length;
+      const centerLng = validPoints.reduce((sum: number, p: any) => sum + p.lng, 0) / validPoints.length;
       const centerPoint: [number, number] = [centerLat, centerLng];
 
       const officer = getOfficerDetails(duty);
+      allPoints.push(centerPoint);
+      // Also include polygon vertices for better bounds
+      if (Array.isArray(duty.location?.polygon)) {
+        duty.location.polygon.forEach((pt: any) => {
+          const lat = Number(pt?.lat);
+          const lng = Number(pt?.lng);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            allPoints.push([lat, lng]);
+          }
+        });
+      }
 
       // Create duty icon based on type
       const dutyIcon = L.divIcon({
@@ -192,7 +204,8 @@ export function InteractiveMap({
           html: duty.type === 'naka' ? 'N' : 'P',
           iconSize: markerSize as [number, number],
           className: markerClass
-        })
+        }),
+        zIndexOffset: 1000
       })
         .bindPopup(`
           <div style="min-width: 250px; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;" onclick="event.stopPropagation();">
@@ -278,6 +291,8 @@ export function InteractiveMap({
         (circle as any).dutyId = duty.id;
         
         markersRef.current?.addLayer(circle);
+        // Push circle behind markers
+        circle.bringToBack();
       } else if (duty.type === 'patrol') {
         // Use default radius or calculate from polygon if no default provided
         let radius = defaultRadius;
@@ -311,11 +326,28 @@ export function InteractiveMap({
         (circle as any).dutyId = duty.id;
         
         markersRef.current?.addLayer(circle);
+        // Push circle behind markers
+        circle.bringToBack();
       }
       } catch (error) {
         console.error('Error processing duty:', duty.id, error);
       }
     });
+
+    // Auto-fit map to show all duties if any are present
+    try {
+      if (mapInstanceRef.current && allPoints.length > 0 && !selectedDutyId) {
+        const bounds = L.latLngBounds(allPoints as any);
+        mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      }
+    } catch (e) {
+      // no-op
+    }
+
+    // Ensure map recalculates layout after dynamic updates
+    setTimeout(() => {
+      mapInstanceRef.current?.invalidateSize();
+    }, 50);
   }, [duties, officers, selectedDutyId]);
 
   // Focus on selected duty

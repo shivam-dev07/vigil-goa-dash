@@ -8,7 +8,7 @@ interface RecentLogsProps {
   maxHeight?: string;
 }
 
-export function RecentLogs({ maxHeight = "400px" }: RecentLogsProps) {
+export function RecentLogs({ maxHeight = "600px" }: RecentLogsProps) {
   const { recentActivities, loading } = useRealTimeRecentActivities();
 
   if (loading) {
@@ -126,15 +126,15 @@ export function RecentLogs({ maxHeight = "400px" }: RecentLogsProps) {
 
   return (
     <Card style={{ height: maxHeight }}>
-      <CardHeader>
+      <CardHeader className="py-3 px-4">
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary" />
           Recent Activity Logs
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        {/* ✅ Scrollable wrapper */}
-        <div className="max-h-80 overflow-y-auto space-y-4 pr-2">
+      <CardContent className="p-0 h-[calc(100%-64px)] overflow-hidden">
+        {/* ✅ Height-aware scrollable wrapper with proper alignment */}
+        <div className="h-full overflow-y-auto space-y-3 pr-2">
           {recentActivities.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -147,7 +147,7 @@ export function RecentLogs({ maxHeight = "400px" }: RecentLogsProps) {
             recentActivities.map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-start justify-between p-4 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                className="flex items-start justify-between p-4 bg-card border border-border rounded-lg hover:bg-accent/50 transition-colors w-full"
               >
                 <div className="flex items-start gap-3 flex-1">
                   <div className="flex items-center gap-2 mt-1">

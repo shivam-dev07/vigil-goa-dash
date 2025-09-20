@@ -97,40 +97,40 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Stats Cards - Compact size to prevent overlapping */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Stats Cards - Polished spacing */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Officers"
           value={officers.length}
           icon={Users}
           loading={officersLoading}
-          className="h-16 p-3"
+          className="h-20"
         />
         <StatsCard
           title="Active Duties"
           value={activeDuties.length}
           icon={Shield}
           loading={dutiesLoading}
-          className="h-16 p-3"
+          className="h-20"
         />
         <StatsCard
           title="Completed Duties"
           value={completedDuties.length}
           icon={CheckCircle}
           loading={dutiesLoading}
-          className="h-16 p-3"
+          className="h-20"
         />
         <StatsCard
           title="Recent Activities"
           value={recentActivities.length}
           icon={AlertTriangle}
           loading={activitiesLoading}
-          className="h-16 p-3"
+          className="h-20"
         />
       </div>
 
       {/* Main Content Grid - Map takes more space */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
         {/* Map Panel - Takes 3/4 of the width */}
         <div className="xl:col-span-3">
           <MapPanel 
@@ -150,9 +150,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Logs - Reduced height */}
+      {/* Recent Logs */}
       <div className="grid grid-cols-1">
-        <RecentLogs maxHeight="300px" />
+        <RecentLogs maxHeight="380px" />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
+import { useRealTimeDuties } from '@/hooks/useRealTimeData';
 import { InteractiveMap } from '@/components/maps/InteractiveMap';
 
 interface MapPanelProps {
@@ -9,13 +10,15 @@ interface MapPanelProps {
 }
 
 export function MapPanel({ selectedDutyId, onDutyFocus, height = "400px" }: MapPanelProps) {
+  const { duties } = useRealTimeDuties();
   return (
     <Card style={{ height }}>
-      <CardHeader>
+      <CardHeader className="py-3 px-4">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
             Live Duty Map
+            <span className="text-xs text-muted-foreground">(duties: {duties.length})</span>
           </div>
           {/* Legend */}
           <div className="flex items-center gap-4 text-sm">

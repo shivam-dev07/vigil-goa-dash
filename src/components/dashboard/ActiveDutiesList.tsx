@@ -116,14 +116,14 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId, maxHeight = "400
   if (loading) {
     return (
       <Card style={{ height: maxHeight }}>
-        <CardHeader>
+        <CardHeader className="py-3 px-4">
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
             Active Duties
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="p-0">
+          <div className="space-y-4 p-4">
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
@@ -150,14 +150,14 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId, maxHeight = "400
 
   return (
     <Card style={{ height: maxHeight }}>
-      <CardHeader>
+      <CardHeader className="py-3 px-4">
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-primary" />
           Active Duties ({activeDuties.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100%-80px)] p-4">
+        <ScrollArea className="h-[calc(100%-64px)] p-4">
           {activeDuties.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
               <Shield className="h-8 w-8 mb-2" />
