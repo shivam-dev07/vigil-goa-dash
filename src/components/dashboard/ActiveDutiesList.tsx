@@ -15,19 +15,52 @@ interface ActiveDutiesListProps {
 
 export function ActiveDutiesList({ onDutyClick, selectedDutyId, maxHeight = "400px" }: ActiveDutiesListProps) {
   const { duties, loading } = useRealTimeDuties();
-  const { officers } = useRealTimeOfficers();
+  const { officers, loading: officersLoading } = useRealTimeOfficers();
 
   // Get officer details helper with backward compatibility
   const getOfficerDetails = (duty: any) => {
-    // Handle both old (officerUid) and new (officerUids) data structures
-    const officerUids = duty.officerUids || (duty.officerUid ? [duty.officerUid] : []);
-    
-    const dutyOfficers = officers.filter(o => o && officerUids.includes(o.id!));
-    if (dutyOfficers.length === 0) {
+    // If officers still loading, return placeholder to avoid flicker to Unknown
+    if (officersLoading) {
       return {
-        name: 'Unknown Officer',
-        designation: 'Unknown',
-        staffId: 'Unknown'
+        name: 'Loading officers…',
+        designation: '',
+        staffId: ''
+      };
+    }
+    // Handle both old/new structures and fallbacks from assignment form
+    const officerUidsRaw = duty.officerUids || duty.officerIds || (duty.officerUid ? [duty.officerUid] : []);
+    // Normalize possible shapes: string IDs, numbers, or objects like { id: '...' }
+    const officerUids = (officerUidsRaw || []).map((v: any) => {
+      if (v && typeof v === 'object') {
+        return String(v.id ?? v.uid ?? v.value ?? '').trim();
+      }
+      return String(v ?? '').trim();
+    }).filter((v: string) => v.length > 0);
+
+    let dutyOfficers = officers.filter(o => o && (
+      officerUids.includes(String(o.id || '').trim()) ||
+      officerUids.includes(String((o as any).docId || '').trim())
+    ));
+    // Fallback: try matching by staff_id if document id match failed (legacy data)
+    if (dutyOfficers.length === 0) {
+      dutyOfficers = officers.filter(o => o && officerUids.includes(String(o.staff_id || '').trim()));
+    }
+    if (dutyOfficers.length === 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[ActiveDutiesList] No officer match for duty', duty?.id, 'officerUids:', officerUids);
+      }
+      // Better fallback: show count or raw IDs if available
+      if (officerUids.length > 0) {
+        return {
+          name: `${officerUids.length} Officer${officerUids.length > 1 ? 's' : ''}`,
+          designation: 'Assigned',
+          staffId: officerUids.join(', ')
+        };
+      }
+      return {
+        name: 'Unassigned',
+        designation: '—',
+        staffId: '—'
       };
     }
     
@@ -43,8 +76,8 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId, maxHeight = "400
     // Multiple officers
     return {
       name: `${dutyOfficers.length} Officers`,
-      designation: dutyOfficers.map(o => o.staff_designation).join(', '),
-      staffId: dutyOfficers.map(o => o.staff_id).join(', ')
+      designation: dutyOfficers.map(o => o.staff_designation).filter(Boolean).join(', '),
+      staffId: dutyOfficers.map(o => o.staff_id).filter(Boolean).join(', ')
     };
   };
 

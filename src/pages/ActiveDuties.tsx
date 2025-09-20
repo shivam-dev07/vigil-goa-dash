@@ -26,38 +26,78 @@ export default function ActiveDuties() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Filter duties based on search and filters
+  // Normalize officer IDs from a duty (supports officerUids[], officerIds[], or legacy officerUid)
+  const getDutyOfficerIds = (duty: any): string[] => {
+    const raw = duty?.officerUids || duty?.officerIds || (duty?.officerUid ? [duty.officerUid] : []);
+    return (raw || []).map((v: any) => {
+      if (v && typeof v === 'object') return String(v.id ?? v.uid ?? v.value ?? '').trim();
+      return String(v ?? '').trim();
+    }).filter((v: string) => v.length > 0);
+  };
+
+  // Resolve officers from IDs with fallback to staff_id
+  const getDutyOfficers = (duty: any) => {
+    const ids = getDutyOfficerIds(duty);
+    if (!ids.length) return [] as typeof officers;
+    let matched = officers.filter(o => o && ids.includes(String(o.id || '').trim()));
+    if (matched.length === 0) {
+      matched = officers.filter(o => o && ids.includes(String(o.staff_id || '').trim()));
+    }
+    return matched;
+  };
+
+  // Filter duties based on search and filters (search by officer names/IDs too)
   const filteredDuties = duties.filter(duty => {
     if (!duty) return false;
-    
-    const matchesSearch = (duty.officerUid || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (duty.type || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (duty.comments || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+
+    const ids = getDutyOfficerIds(duty);
+    const matchedOfficers = getDutyOfficers(duty);
+    const officerText = [
+      ...ids,
+      ...matchedOfficers.map(o => o.staff_name || ''),
+      ...matchedOfficers.map(o => o.staff_id || ''),
+    ].join(' ').toLowerCase();
+
+    const search = searchTerm.toLowerCase();
+    const matchesSearch = officerText.includes(search) ||
+      (duty.type || '').toLowerCase().includes(search) ||
+      (duty.comments || '').toLowerCase().includes(search);
+
     const matchesStatus = statusFilter === 'all' || duty.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
-  // Get officer details by UID
-  const getOfficerDetails = (officerUid: string) => {
-    if (!officerUid || !officers) {
+  // Get officer display text for a duty (supports multiple officers)
+  const getDutyOfficerDisplay = (duty: any) => {
+    const matched = getDutyOfficers(duty);
+    if (matched.length === 0) {
+      const ids = getDutyOfficerIds(duty);
+      if (ids.length > 0) {
+        return {
+          name: `${ids.length} Officer${ids.length > 1 ? 's' : ''}`,
+          designation: 'Assigned',
+          staffId: ids.join(', ')
+        };
+      }
       return {
-        name: 'Unknown Officer',
-        designation: 'Unknown',
-        staffId: 'Unknown'
+        name: 'Unassigned',
+        designation: '—',
+        staffId: '—'
       };
     }
-    
-    const officer = officers.find(o => o && o.id === officerUid);
-    return officer ? {
-      name: officer.staff_name || 'Unknown Officer',
-      designation: officer.staff_designation || 'Unknown',
-      staffId: officer.staff_id || 'Unknown'
-    } : {
-      name: 'Unknown Officer',
-      designation: 'Unknown',
-      staffId: 'Unknown'
+    if (matched.length === 1) {
+      const o = matched[0];
+      return {
+        name: o.staff_name || 'Unknown Officer',
+        designation: o.staff_designation || 'Unknown',
+        staffId: o.staff_id || 'Unknown'
+      };
+    }
+    return {
+      name: `${matched.length} Officers`,
+      designation: matched.map(o => o.staff_designation).filter(Boolean).join(', '),
+      staffId: matched.map(o => o.staff_id).filter(Boolean).join(', ')
     };
   };
 
@@ -221,7 +261,7 @@ export default function ActiveDuties() {
                   {filteredDuties.map((duty) => {
                     if (!duty || !duty.id) return null;
                     
-                    const officer = getOfficerDetails(duty.officerUid);
+                    const officer = getDutyOfficerDisplay(duty);
                     return (
                       <TableRow key={duty.id}>
                         <TableCell>

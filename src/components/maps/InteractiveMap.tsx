@@ -117,18 +117,26 @@ export function InteractiveMap({
 
     // Get officer details helper with backward compatibility
     const getOfficerDetails = (duty: any) => {
-      // Handle both old (officerUid) and new (officerUids) data structures
-      const officerUids = duty.officerUids || (duty.officerUid ? [duty.officerUid] : []);
-      
-      const dutyOfficers = officers.filter(o => o && officerUids.includes(o.id!));
+      // Support multiple shapes: officerUids[], officerIds[], legacy officerUid
+      const raw = duty.officerUids || duty.officerIds || (duty.officerUid ? [duty.officerUid] : []);
+      const ids = (raw || []).map((v: any) => {
+        if (v && typeof v === 'object') return String(v.id ?? v.uid ?? v.value ?? '').trim();
+        return String(v ?? '').trim();
+      }).filter((v: string) => v.length > 0);
+
+      let dutyOfficers = officers.filter(o => o && ids.includes(String(o.id || '').trim()));
+      if (dutyOfficers.length === 0) {
+        dutyOfficers = officers.filter(o => o && ids.includes(String(o.staff_id || '').trim()));
+      }
+
       if (dutyOfficers.length === 0) {
         return {
-          name: 'Unknown Officer',
-          designation: 'Unknown',
-          staffId: 'Unknown'
+          name: ids.length ? `${ids.length} Officer${ids.length > 1 ? 's' : ''}` : 'Unassigned',
+          designation: ids.length ? 'Assigned' : '—',
+          staffId: ids.length ? ids.join(', ') : '—'
         };
       }
-      
+
       if (dutyOfficers.length === 1) {
         const officer = dutyOfficers[0];
         return {
@@ -137,12 +145,12 @@ export function InteractiveMap({
           staffId: officer.staff_id || 'Unknown'
         };
       }
-      
+
       // Multiple officers
       return {
         name: `${dutyOfficers.length} Officers`,
-        designation: dutyOfficers.map(o => o.staff_designation).join(', '),
-        staffId: dutyOfficers.map(o => o.staff_id).join(', ')
+        designation: dutyOfficers.map(o => o.staff_designation).filter(Boolean).join(', '),
+        staffId: dutyOfficers.map(o => o.staff_id).filter(Boolean).join(', ')
       };
     };
 

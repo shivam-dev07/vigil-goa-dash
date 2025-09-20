@@ -15,6 +15,7 @@ import { db } from '@/lib/firebase';
 // Officer interface
 export interface Officer {
   id?: string;
+  docId?: string;
   staff_id: string;
   staff_name: string;
   staff_designation: string;
@@ -27,6 +28,7 @@ export interface Officer {
 // Duty interface
 export interface Duty {
   id?: string;
+  docId?: string;
   officerUids: string[]; // Changed to array for multiple officers
   vehicleIds?: string[]; // Added for vehicle assignment
   type: 'naka' | 'patrol';
@@ -50,6 +52,7 @@ export interface Duty {
 // Vehicle interface
 export interface Vehicle {
   id?: string;
+  docId?: string;
   vehicle_name: string;
   vehicle_number: string;
   status?: 'available' | 'assigned' | 'maintenance';
@@ -60,6 +63,7 @@ export interface Vehicle {
 // Compliance Log interface
 export interface ComplianceLog {
   id?: string;
+  docId?: string;
   dutyId: string;
   officerId: string;
   officerName: string;
@@ -81,10 +85,16 @@ export const officersService = {
     const querySnapshot = await getDocs(
       query(collection(db, 'officers'), orderBy('createdAt', 'desc'))
     );
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Officer));
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data() as any;
+      // Ensure we always expose the Firestore doc id via docId and prefer it for id when data.id is missing
+      const officer: Officer = {
+        ...data,
+        id: (data && data.id) ? String(data.id) : doc.id,
+        docId: doc.id,
+      };
+      return officer;
+    });
   },
 
   // Add new officer
@@ -118,10 +128,16 @@ export const officersService = {
     return onSnapshot(
       collection(db, 'officers'),
       (snapshot) => {
-        const officers = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Officer));
+        const officers = snapshot.docs.map(doc => {
+          const data = doc.data() as any;
+          // Ensure we always expose the Firestore doc id via docId and prefer it for id when data.id is missing
+          const officer: Officer = {
+            ...data,
+            id: (data && data.id) ? String(data.id) : doc.id,
+            docId: doc.id,
+          };
+          return officer;
+        });
         callback(officers);
       }
     );
