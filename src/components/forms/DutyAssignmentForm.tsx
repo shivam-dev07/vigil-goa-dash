@@ -38,11 +38,20 @@ export function DutyAssignmentForm() {
     comments: '',
   });
 
+  const [officerSearchTerm, setOfficerSearchTerm] = useState('');
+
   const [loading, setLoading] = useState(false);
 
   const availableOfficers = officers.filter(officer => 
     !officer.staff_nature_of_work?.toLowerCase().includes('absent') && 
     !officer.staff_nature_of_work?.toLowerCase().includes('leave')
+  );
+
+  // Filter officers based on search term
+  const filteredOfficers = availableOfficers.filter(officer =>
+    officer.staff_name?.toLowerCase().includes(officerSearchTerm.toLowerCase()) ||
+    officer.staff_id?.toLowerCase().includes(officerSearchTerm.toLowerCase()) ||
+    officer.staff_designation?.toLowerCase().includes(officerSearchTerm.toLowerCase())
   );
 
   const availableVehicles = vehicles.filter(vehicle => 
@@ -242,39 +251,171 @@ export function DutyAssignmentForm() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="officers">Select Officers</Label>
-              <div className="space-y-2">
-                {availableOfficers.map((officer) => (
-                  <div key={officer.id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`officer-${officer.id}`}
-                      checked={formData.officerIds.includes(officer.id!)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData(prev => ({ 
-                            ...prev, 
-                            officerIds: [...prev.officerIds, officer.id!] 
-                          }));
-                        } else {
-                          setFormData(prev => ({ 
-                            ...prev, 
-                            officerIds: prev.officerIds.filter(id => id !== officer.id) 
-                          }));
-                        }
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                    <label htmlFor={`officer-${officer.id}`} className="flex items-center gap-2 cursor-pointer">
-                      <Badge variant="outline">{officer.staff_id}</Badge>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{officer.staff_name}</span>
-                        <span className="text-xs text-muted-foreground">{officer.staff_designation}</span>
-                      </div>
-                    </label>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between">
+                <Label htmlFor="officers">Select Officers</Label>
+                <Badge variant="outline" className="text-xs">
+                  {availableOfficers.length} available
+                </Badge>
               </div>
+              
+              {/* Quick Add Dropdown */}
+              <div className="space-y-2">
+                <Select 
+                  value="" 
+                  onValueChange={(officerId) => {
+                    if (officerId && !formData.officerIds.includes(officerId)) {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        officerIds: [...prev.officerIds, officerId] 
+                      }));
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Quick add officer..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredOfficers
+                      .filter(officer => !formData.officerIds.includes(officer.id!))
+                      .map((officer) => (
+                        <SelectItem key={officer.id} value={officer.id!}>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">{officer.staff_id}</Badge>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{officer.staff_name}</span>
+                              <span className="text-xs text-muted-foreground">{officer.staff_designation}</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Selected Officers Display */}
+              {formData.officerIds.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Selected Officers ({formData.officerIds.length})</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          officerIds: []
+                        }));
+                      }}
+                      className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto border rounded-lg p-2">
+                    {formData.officerIds.map((officerId) => {
+                      const officer = availableOfficers.find(o => o.id === officerId);
+                      if (!officer) return null;
+                      
+                      return (
+                        <div key={officerId} className="flex items-center justify-between p-2 bg-primary/5 rounded border">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">{officer.staff_id}</Badge>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-sm">{officer.staff_name}</span>
+                              <span className="text-xs text-muted-foreground">{officer.staff_designation}</span>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                officerIds: prev.officerIds.filter(id => id !== officerId) 
+                              }));
+                            }}
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Detailed Selection with Checkboxes */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">All Available Officers</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const allOfficerIds = availableOfficers.map(o => o.id!);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        officerIds: allOfficerIds
+                      }));
+                    }}
+                    className="text-xs"
+                  >
+                    Select All
+                  </Button>
+                </div>
+                
+                {/* Search Input */}
+                <Input
+                  placeholder="Search officers by name, ID, or designation..."
+                  value={officerSearchTerm}
+                  onChange={(e) => setOfficerSearchTerm(e.target.value)}
+                  className="text-sm"
+                />
+                
+                <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-2">
+                  {filteredOfficers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      {officerSearchTerm ? 'No officers found matching your search' : 'No officers available'}
+                    </p>
+                  ) : (
+                    filteredOfficers.map((officer) => (
+                      <div key={officer.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`officer-${officer.id}`}
+                          checked={formData.officerIds.includes(officer.id!)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                officerIds: [...prev.officerIds, officer.id!] 
+                              }));
+                            } else {
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                officerIds: prev.officerIds.filter(id => id !== officer.id) 
+                              }));
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <label htmlFor={`officer-${officer.id}`} className="flex items-center gap-2 cursor-pointer flex-1">
+                          <Badge variant="outline" className="text-xs">{officer.staff_id}</Badge>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm">{officer.staff_name}</span>
+                            <span className="text-xs text-muted-foreground">{officer.staff_designation}</span>
+                          </div>
+                        </label>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
               {formData.officerIds.length === 0 && (
                 <p className="text-sm text-muted-foreground">Please select at least one officer</p>
               )}
