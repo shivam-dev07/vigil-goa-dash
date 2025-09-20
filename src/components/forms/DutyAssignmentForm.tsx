@@ -56,16 +56,20 @@ export function DutyAssignmentForm() {
     return points;
   };
 
-  // Helper function to create patrol polygon (square around point)
+  // Helper function to create patrol polygon (circular around point)
   const createPatrolPolygon = (center: [number, number]): Array<{lat: number, lng: number}> => {
     const [lat, lng] = center;
-    const offset = 0.01; // ~1km offset
-    return [
-      { lat: lat - offset, lng: lng - offset },
-      { lat: lat + offset, lng: lng - offset },
-      { lat: lat + offset, lng: lng + offset },
-      { lat: lat - offset, lng: lng + offset },
-    ];
+    const radius = 0.01; // ~1km radius
+    const points = [];
+    
+    // Create 16 points around the circle
+    for (let i = 0; i < 16; i++) {
+      const angle = (i * 2 * Math.PI) / 16;
+      const pointLat = lat + (radius * Math.cos(angle));
+      const pointLng = lng + (radius * Math.sin(angle));
+      points.push({ lat: pointLat, lng: pointLng });
+    }
+    return points;
   };
 
   const handleMapReady = (map: L.Map) => {
@@ -101,17 +105,18 @@ export function DutyAssignmentForm() {
         const polygon = createCirclePolygon([lat, lng], geofenceRadius);
         setSelectedPolygon(polygon);
       } else if (formData.dutyType === 'patrol') {
-        // For patrol, create a simple polygon around the point
+        // For patrol, create a circular area around the point
         const polygon = createPatrolPolygon([lat, lng]);
         setSelectedPolygon(polygon);
         
-        // Draw polygon on map
-        const leafletPolygon = L.polygon(polygon.map(p => [p.lat, p.lng]), {
+        // Draw circle on map for patrol
+        const circle = L.circle([lat, lng], {
           color: '#3b82f6',
           fillColor: '#3b82f6',
           fillOpacity: 0.2,
+          radius: geofenceRadius
         }).addTo(map);
-        setCurrentGeofence(leafletPolygon as any);
+        setCurrentGeofence(circle);
       }
     });
   };

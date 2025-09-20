@@ -186,17 +186,19 @@ export function InteractiveMap({
         });
         markersRef.current?.addLayer(circle);
       } else if (duty.type === 'patrol') {
-        // For patrol, draw the polygon
-        const polygon = L.polygon(
-          duty.location.polygon.map(p => [p.lat, p.lng] as [number, number]),
-          {
-            color: '#3b82f6',
-            fillColor: '#3b82f6',
-            fillOpacity: 0.1,
-            weight: 2
-          }
+        // For patrol, create a circle from the polygon points
+        const radius = Math.max(
+          Math.abs(duty.location.polygon[0].lat - centerLat) * 111000, // Convert to meters
+          Math.abs(duty.location.polygon[0].lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180)
         );
-        markersRef.current?.addLayer(polygon);
+        
+        const circle = L.circle(centerPoint, {
+          color: '#3b82f6',
+          fillColor: '#3b82f6',
+          fillOpacity: 0.1,
+          radius: radius
+        });
+        markersRef.current?.addLayer(circle);
       }
     });
   }, [duties, officers]);

@@ -70,28 +70,24 @@ export default function Dashboard() {
           title="Total Officers"
           value={officers.length}
           icon={Users}
-          trend={{ value: officers.length > 0 ? 100 : 0, isPositive: true }}
           loading={officersLoading}
         />
         <StatsCard
           title="Active Duties"
           value={activeDuties.length}
           icon={Shield}
-          trend={{ value: activeDuties.length > 0 ? 100 : 0, isPositive: true }}
           loading={dutiesLoading}
         />
         <StatsCard
           title="Completed Duties"
           value={completedDuties.length}
           icon={CheckCircle}
-          trend={{ value: completedDuties.length > 0 ? 100 : 0, isPositive: true }}
           loading={dutiesLoading}
         />
         <StatsCard
           title="Recent Activities"
           value={recentLogs.length}
           icon={AlertTriangle}
-          trend={{ value: recentLogs.length > 0 ? 100 : 0, isPositive: true }}
           loading={logsLoading}
         />
       </div>
