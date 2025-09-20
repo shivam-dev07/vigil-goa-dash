@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyASBV1HuSX10cdZJ2GYr6PimsYgYyZwuLg",
   authDomain: "goapolicefirebase.firebaseapp.com",
   projectId: "goapolicefirebase",
-  storageBucket: "goapolicefirebase.appspot.com", // usually "<project-id>.appspot.com"
+  storageBucket: "goapolicefirebase.firebasestorage.app", // usually "<project-id>.appspot.com"
   messagingSenderId: "892230117968",
   appId: "1:892230117968:web:6ec95fcf92e2a46496ff55"
 };

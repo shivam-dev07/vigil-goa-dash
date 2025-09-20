@@ -267,7 +267,7 @@ export function InteractiveMap({
         });
         
         // Ensure minimum radius for visibility
-        const radius = Math.max(maxDistance, 50); // Minimum 50 meters
+        const radius = Math.max(maxDistance, 1000); // Minimum 50 meters
         
         // Debug logging (uncomment for debugging)
         // console.log(`PATROL Duty ${duty.id} - Calculated radius: ${radius}m, Max distance: ${maxDistance}m`);
