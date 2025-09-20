@@ -89,19 +89,36 @@ export function AssignmentMap({
     // Clear existing duty markers
     markersRef.current.clearLayers();
 
-    // Get officer details helper
-    const getOfficerDetails = (officerUid: string) => {
-      const officer = officers.find(o => o && o.id === officerUid);
-      return officer ? {
-        name: officer.staff_name || 'Unknown Officer',
-        designation: officer.staff_designation || 'Unknown',
-        staffId: officer.staff_id || 'Unknown'
-      } : {
+  // Get officer details helper with backward compatibility
+  const getOfficerDetails = (duty: any) => {
+    // Handle both old (officerUid) and new (officerUids) data structures
+    const officerUids = duty.officerUids || (duty.officerUid ? [duty.officerUid] : []);
+    
+    const dutyOfficers = officers.filter(o => o && officerUids.includes(o.id!));
+    if (dutyOfficers.length === 0) {
+      return {
         name: 'Unknown Officer',
         designation: 'Unknown',
         staffId: 'Unknown'
       };
+    }
+    
+    if (dutyOfficers.length === 1) {
+      const officer = dutyOfficers[0];
+      return {
+        name: officer.staff_name || 'Unknown Officer',
+        designation: officer.staff_designation || 'Unknown',
+        staffId: officer.staff_id || 'Unknown'
+      };
+    }
+    
+    // Multiple officers
+    return {
+      name: `${dutyOfficers.length} Officers`,
+      designation: dutyOfficers.map(o => o.staff_designation).join(', '),
+      staffId: dutyOfficers.map(o => o.staff_id).join(', ')
     };
+  };
 
     // Filter duties to show only active/incomplete duties
     const activeDuties = duties.filter(duty => {
@@ -117,12 +134,13 @@ export function AssignmentMap({
 
     // Add markers for each active duty
     activeDuties.forEach(duty => {
+      try {
       // Get center point from polygon
       const centerLat = duty.location.polygon.reduce((sum, point) => sum + point.lat, 0) / duty.location.polygon.length;
       const centerLng = duty.location.polygon.reduce((sum, point) => sum + point.lng, 0) / duty.location.polygon.length;
       const centerPoint: [number, number] = [centerLat, centerLng];
 
-      const officer = getOfficerDetails(duty.officerUid);
+      const officer = getOfficerDetails(duty);
 
       // Create duty icon
       const dutyIcon = L.divIcon({
@@ -188,6 +206,9 @@ export function AssignmentMap({
         });
         markersRef.current?.addLayer(circle);
       }
+      } catch (error) {
+        console.error('Error processing duty:', duty.id, error);
+      }
     });
   }, [duties, officers, showExistingDuties]);
 
@@ -223,6 +244,8 @@ export function AssignmentMap({
           align-items: center;
           justify-content: center;
           font-size: 16px;
+          font-weight: bold;
+          color: #333;
           box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
       `}</style>

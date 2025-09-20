@@ -19,6 +19,7 @@ interface InteractiveMapProps {
   onMapReady?: (map: L.Map) => void;
   selectedDutyId?: string;
   onDutyFocus?: (duty: any) => void;
+  defaultRadius?: number;
 }
 
 export function InteractiveMap({ 
@@ -27,7 +28,8 @@ export function InteractiveMap({
   zoom = 11,
   onMapReady,
   selectedDutyId,
-  onDutyFocus
+  onDutyFocus,
+  defaultRadius = 200
 }: InteractiveMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -113,17 +115,34 @@ export function InteractiveMap({
     // Clear existing duty markers
     markersRef.current.clearLayers();
 
-    // Get officer details helper
-    const getOfficerDetails = (officerUid: string) => {
-      const officer = officers.find(o => o && o.id === officerUid);
-      return officer ? {
-        name: officer.staff_name || 'Unknown Officer',
-        designation: officer.staff_designation || 'Unknown',
-        staffId: officer.staff_id || 'Unknown'
-      } : {
-        name: 'Unknown Officer',
-        designation: 'Unknown',
-        staffId: 'Unknown'
+    // Get officer details helper with backward compatibility
+    const getOfficerDetails = (duty: any) => {
+      // Handle both old (officerUid) and new (officerUids) data structures
+      const officerUids = duty.officerUids || (duty.officerUid ? [duty.officerUid] : []);
+      
+      const dutyOfficers = officers.filter(o => o && officerUids.includes(o.id!));
+      if (dutyOfficers.length === 0) {
+        return {
+          name: 'Unknown Officer',
+          designation: 'Unknown',
+          staffId: 'Unknown'
+        };
+      }
+      
+      if (dutyOfficers.length === 1) {
+        const officer = dutyOfficers[0];
+        return {
+          name: officer.staff_name || 'Unknown Officer',
+          designation: officer.staff_designation || 'Unknown',
+          staffId: officer.staff_id || 'Unknown'
+        };
+      }
+      
+      // Multiple officers
+      return {
+        name: `${dutyOfficers.length} Officers`,
+        designation: dutyOfficers.map(o => o.staff_designation).join(', '),
+        staffId: dutyOfficers.map(o => o.staff_id).join(', ')
       };
     };
 
@@ -146,13 +165,14 @@ export function InteractiveMap({
 
     // Add markers for each active duty
     activeDuties.forEach(duty => {
+      try {
 
       // Get center point from polygon
       const centerLat = duty.location.polygon.reduce((sum, point) => sum + point.lat, 0) / duty.location.polygon.length;
       const centerLng = duty.location.polygon.reduce((sum, point) => sum + point.lng, 0) / duty.location.polygon.length;
       const centerPoint: [number, number] = [centerLat, centerLng];
 
-      const officer = getOfficerDetails(duty.officerUid);
+      const officer = getOfficerDetails(duty);
 
       // Create duty icon based on type
       const dutyIcon = L.divIcon({
@@ -170,7 +190,7 @@ export function InteractiveMap({
       const marker = L.marker(centerPoint, { 
         icon: L.divIcon({
           html: duty.type === 'naka' ? 'N' : 'P',
-          iconSize: markerSize,
+          iconSize: markerSize as [number, number],
           className: markerClass
         })
       })
@@ -226,21 +246,24 @@ export function InteractiveMap({
 
       // Add geofence/polygon based on duty type
       if (duty.type === 'naka') {
-        // Calculate radius from polygon points - use a more robust calculation
-        let maxDistance = 0;
-        duty.location.polygon.forEach(point => {
-          const distance = Math.sqrt(
-            Math.pow((point.lat - centerLat) * 111000, 2) + 
-            Math.pow((point.lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180), 2)
-          );
-          maxDistance = Math.max(maxDistance, distance);
-        });
+        // Use default radius or calculate from polygon if no default provided
+        let radius = defaultRadius;
         
-        // Ensure minimum radius for visibility
-        const radius = Math.max(maxDistance, 50); // Minimum 50 meters
+        // If no default radius provided, calculate from polygon points
+        if (!defaultRadius || defaultRadius <= 0) {
+          let maxDistance = 0;
+          duty.location.polygon.forEach(point => {
+            const distance = Math.sqrt(
+              Math.pow((point.lat - centerLat) * 111000, 2) + 
+              Math.pow((point.lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180), 2)
+            );
+            maxDistance = Math.max(maxDistance, distance);
+          });
+          radius = Math.max(maxDistance, 50); // Minimum 50 meters
+        }
         
         // Debug logging (uncomment for debugging)
-        // console.log(`NAKA Duty ${duty.id} - Calculated radius: ${radius}m, Max distance: ${maxDistance}m`);
+        // console.log(`NAKA Duty ${duty.id} - Using radius: ${radius}m (defaultRadius: ${defaultRadius})`);
         
         const isSelected = selectedDutyId === duty.id;
         const circle = L.circle(centerPoint, {
@@ -256,21 +279,24 @@ export function InteractiveMap({
         
         markersRef.current?.addLayer(circle);
       } else if (duty.type === 'patrol') {
-        // Calculate radius from polygon points - use a more robust calculation
-        let maxDistance = 0;
-        duty.location.polygon.forEach(point => {
-          const distance = Math.sqrt(
-            Math.pow((point.lat - centerLat) * 111000, 2) + 
-            Math.pow((point.lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180), 2)
-          );
-          maxDistance = Math.max(maxDistance, distance);
-        });
+        // Use default radius or calculate from polygon if no default provided
+        let radius = defaultRadius;
         
-        // Ensure minimum radius for visibility
-        const radius = Math.max(maxDistance, 1000); // Minimum 50 meters
+        // If no default radius provided, calculate from polygon points
+        if (!defaultRadius || defaultRadius <= 0) {
+          let maxDistance = 0;
+          duty.location.polygon.forEach(point => {
+            const distance = Math.sqrt(
+              Math.pow((point.lat - centerLat) * 111000, 2) + 
+              Math.pow((point.lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180), 2)
+            );
+            maxDistance = Math.max(maxDistance, distance);
+          });
+          radius = Math.max(maxDistance, 50); // Minimum 50 meters
+        }
         
         // Debug logging (uncomment for debugging)
-        // console.log(`PATROL Duty ${duty.id} - Calculated radius: ${radius}m, Max distance: ${maxDistance}m`);
+        // console.log(`PATROL Duty ${duty.id} - Using radius: ${radius}m (defaultRadius: ${defaultRadius})`);
         
         const isSelected = selectedDutyId === duty.id;
         const circle = L.circle(centerPoint, {
@@ -286,8 +312,11 @@ export function InteractiveMap({
         
         markersRef.current?.addLayer(circle);
       }
+      } catch (error) {
+        console.error('Error processing duty:', duty.id, error);
+      }
     });
-  }, [duties, officers]);
+  }, [duties, officers, selectedDutyId]);
 
   // Focus on selected duty
   useEffect(() => {
@@ -302,6 +331,17 @@ export function InteractiveMap({
     
     // Focus on the duty location with appropriate zoom level
     mapInstanceRef.current.setView([centerLat, centerLng], 16);
+    
+    // Find and open the popup for the selected duty after a short delay
+    setTimeout(() => {
+      if (markersRef.current) {
+        markersRef.current.eachLayer((layer: any) => {
+          if (layer.dutyId === selectedDutyId && layer.getPopup) {
+            layer.openPopup();
+          }
+        });
+      }
+    }, 100);
     
     // Call the focus callback
     onDutyFocus?.(selectedDuty);
@@ -357,6 +397,8 @@ export function InteractiveMap({
           align-items: center;
           justify-content: center;
           font-size: 16px;
+          font-weight: bold;
+          color: #333;
           box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         .selected-marker {

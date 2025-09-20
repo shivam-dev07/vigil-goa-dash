@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AssignmentMap } from '@/components/maps/AssignmentMap';
-import { useRealTimeOfficers, useRealTimeDuties } from '@/hooks/useRealTimeData';
+import { useRealTimeOfficers, useRealTimeDuties, useRealTimeVehicles } from '@/hooks/useRealTimeData';
 import { dutiesService, Duty } from '@/services/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Timestamp } from 'firebase/firestore';
@@ -16,6 +16,7 @@ import L from 'leaflet';
 export function DutyAssignmentForm() {
   const { officers } = useRealTimeOfficers();
   const { duties } = useRealTimeDuties();
+  const { vehicles } = useRealTimeVehicles();
   const { toast } = useToast();
   const mapRef = useRef<L.Map | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null);
@@ -26,7 +27,8 @@ export function DutyAssignmentForm() {
   const [showExistingDuties, setShowExistingDuties] = useState(true);
   
   const [formData, setFormData] = useState({
-    officerId: '',
+    officerIds: [] as string[], // Changed to array
+    vehicleIds: [] as string[], // Added for vehicles
     dutyType: '' as 'naka' | 'patrol' | '',
     startDate: new Date().toISOString().split('T')[0], // Today's date
     startTime: '09:00',
@@ -41,6 +43,10 @@ export function DutyAssignmentForm() {
   const availableOfficers = officers.filter(officer => 
     !officer.staff_nature_of_work?.toLowerCase().includes('absent') && 
     !officer.staff_nature_of_work?.toLowerCase().includes('leave')
+  );
+
+  const availableVehicles = vehicles.filter(vehicle => 
+    vehicle.status === 'available' || !vehicle.status
   );
 
   // Helper function to create circle polygon from center and radius
@@ -136,10 +142,10 @@ export function DutyAssignmentForm() {
       return;
     }
 
-    if (!formData.officerId || !formData.dutyType) {
+    if (formData.officerIds.length === 0 || !formData.dutyType) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields",
+        description: "Please select at least one officer and duty type",
         variant: "destructive",
       });
       return;
@@ -148,12 +154,13 @@ export function DutyAssignmentForm() {
     setLoading(true);
 
     try {
-      const selectedOfficer = officers.find(o => o.id === formData.officerId);
-      if (!selectedOfficer) throw new Error('Officer not found');
+      const selectedOfficers = officers.filter(o => formData.officerIds.includes(o.id!));
+      if (selectedOfficers.length === 0) throw new Error('No valid officers selected');
+
+      const selectedVehicles = vehicles.filter(v => formData.vehicleIds.includes(v.id!));
 
       const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
       const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
-
 
       // Validate dates
       if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
@@ -165,7 +172,8 @@ export function DutyAssignmentForm() {
       }
 
       const dutyData: Omit<Duty, 'id' | 'createdAt' | 'updatedAt'> = {
-        officerUid: formData.officerId,
+        officerUids: formData.officerIds,
+        vehicleIds: formData.vehicleIds.length > 0 ? formData.vehicleIds : undefined,
         type: formData.dutyType,
         location: {
           polygon: selectedPolygon,
@@ -182,14 +190,18 @@ export function DutyAssignmentForm() {
         console.log('Duty created successfully with ID:', dutyId, dutyData);
       }
 
+      const officerNames = selectedOfficers.map(o => o.staff_name).join(', ');
+      const vehicleNames = selectedVehicles.length > 0 ? selectedVehicles.map(v => v.vehicle_name).join(', ') : 'No vehicles';
+      
       toast({
         title: "Duty assigned successfully",
-        description: `${selectedOfficer.staff_name} has been assigned ${formData.dutyType} duty. You can see it on the map above or go to Dashboard to view all duties.`,
+        description: `${officerNames} has been assigned ${formData.dutyType} duty${selectedVehicles.length > 0 ? ` with vehicles: ${vehicleNames}` : ''}. You can see it on the map above or go to Dashboard to view all duties.`,
       });
 
       // Reset form
       setFormData({
-        officerId: '',
+        officerIds: [],
+        vehicleIds: [],
         dutyType: '' as 'naka' | 'patrol' | '',
         startDate: new Date().toISOString().split('T')[0],
         startTime: '09:00',
@@ -230,28 +242,42 @@ export function DutyAssignmentForm() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="officer">Select Officer</Label>
-              <Select 
-                value={formData.officerId} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, officerId: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose an available officer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableOfficers.map((officer) => (
-                    <SelectItem key={officer.id} value={officer.id!}>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{officer.staff_id}</Badge>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{officer.staff_name}</span>
-                          <span className="text-xs text-muted-foreground">{officer.staff_designation}</span>
-                        </div>
+              <Label htmlFor="officers">Select Officers</Label>
+              <div className="space-y-2">
+                {availableOfficers.map((officer) => (
+                  <div key={officer.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`officer-${officer.id}`}
+                      checked={formData.officerIds.includes(officer.id!)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            officerIds: [...prev.officerIds, officer.id!] 
+                          }));
+                        } else {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            officerIds: prev.officerIds.filter(id => id !== officer.id) 
+                          }));
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    <label htmlFor={`officer-${officer.id}`} className="flex items-center gap-2 cursor-pointer">
+                      <Badge variant="outline">{officer.staff_id}</Badge>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{officer.staff_name}</span>
+                        <span className="text-xs text-muted-foreground">{officer.staff_designation}</span>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {formData.officerIds.length === 0 && (
+                <p className="text-sm text-muted-foreground">Please select at least one officer</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -278,6 +304,42 @@ export function DutyAssignmentForm() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vehicles">Select Vehicles (Optional)</Label>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {availableVehicles.map((vehicle) => (
+                  <div key={vehicle.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`vehicle-${vehicle.id}`}
+                      checked={formData.vehicleIds.includes(vehicle.id!)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            vehicleIds: [...prev.vehicleIds, vehicle.id!] 
+                          }));
+                        } else {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            vehicleIds: prev.vehicleIds.filter(id => id !== vehicle.id) 
+                          }));
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    <label htmlFor={`vehicle-${vehicle.id}`} className="flex items-center gap-2 cursor-pointer">
+                      <Badge variant="outline">{vehicle.vehicle_number}</Badge>
+                      <span className="font-medium">{vehicle.vehicle_name}</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {availableVehicles.length === 0 && (
+                <p className="text-sm text-muted-foreground">No vehicles available</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

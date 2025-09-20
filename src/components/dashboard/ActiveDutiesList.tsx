@@ -16,17 +16,34 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId }: ActiveDutiesLi
   const { duties, loading } = useRealTimeDuties();
   const { officers } = useRealTimeOfficers();
 
-  // Get officer details helper
-  const getOfficerDetails = (officerUid: string) => {
-    const officer = officers.find(o => o && o.id === officerUid);
-    return officer ? {
-      name: officer.staff_name || 'Unknown Officer',
-      designation: officer.staff_designation || 'Unknown',
-      staffId: officer.staff_id || 'Unknown'
-    } : {
-      name: 'Unknown Officer',
-      designation: 'Unknown',
-      staffId: 'Unknown'
+  // Get officer details helper with backward compatibility
+  const getOfficerDetails = (duty: any) => {
+    // Handle both old (officerUid) and new (officerUids) data structures
+    const officerUids = duty.officerUids || (duty.officerUid ? [duty.officerUid] : []);
+    
+    const dutyOfficers = officers.filter(o => o && officerUids.includes(o.id!));
+    if (dutyOfficers.length === 0) {
+      return {
+        name: 'Unknown Officer',
+        designation: 'Unknown',
+        staffId: 'Unknown'
+      };
+    }
+    
+    if (dutyOfficers.length === 1) {
+      const officer = dutyOfficers[0];
+      return {
+        name: officer.staff_name || 'Unknown Officer',
+        designation: officer.staff_designation || 'Unknown',
+        staffId: officer.staff_id || 'Unknown'
+      };
+    }
+    
+    // Multiple officers
+    return {
+      name: `${dutyOfficers.length} Officers`,
+      designation: dutyOfficers.map(o => o.staff_designation).join(', '),
+      staffId: dutyOfficers.map(o => o.staff_id).join(', ')
     };
   };
 
@@ -148,8 +165,9 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId }: ActiveDutiesLi
           ) : (
             <div className="space-y-3">
               {activeDuties.map((duty) => {
-                const officer = getOfficerDetails(duty.officerUid);
-                const isSelected = selectedDutyId === duty.id;
+                try {
+                  const officer = getOfficerDetails(duty);
+                  const isSelected = selectedDutyId === duty.id;
                 
                 return (
                   <Button
@@ -189,6 +207,10 @@ export function ActiveDutiesList({ onDutyClick, selectedDutyId }: ActiveDutiesLi
                     </div>
                   </Button>
                 );
+                } catch (error) {
+                  console.error('Error processing duty:', duty.id, error);
+                  return null;
+                }
               })}
             </div>
           )}

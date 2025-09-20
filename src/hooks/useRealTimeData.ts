@@ -3,9 +3,11 @@ import {
   Officer, 
   Duty, 
   ComplianceLog,
+  Vehicle,
   officersService,
   dutiesService,
-  complianceService 
+  complianceService,
+  vehiclesService
 } from '@/services/firestore';
 
 export const useRealTimeOfficers = () => {
@@ -114,4 +116,24 @@ export const useRealTimeCompliance = () => {
   const recentLogs = logs.slice(0, 10); // Latest 10 logs
 
   return { logs, recentLogs, loading, error };
+};
+
+export const useRealTimeVehicles = () => {
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = vehiclesService.onVehiclesSnapshot(
+      (data) => {
+        setVehicles(data);
+        setLoading(false);
+        setError(null);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  return { vehicles, loading, error };
 };

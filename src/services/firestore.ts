@@ -27,7 +27,8 @@ export interface Officer {
 // Duty interface
 export interface Duty {
   id?: string;
-  officerUid: string;
+  officerUids: string[]; // Changed to array for multiple officers
+  vehicleIds?: string[]; // Added for vehicle assignment
   type: 'naka' | 'patrol';
   location: {
     polygon: Array<{
@@ -42,6 +43,16 @@ export interface Duty {
   comments?: string;
   checkInTime?: string;
   checkOutTime?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+// Vehicle interface
+export interface Vehicle {
+  id?: string;
+  vehicle_name: string;
+  vehicle_number: string;
+  status?: 'available' | 'assigned' | 'maintenance';
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -226,6 +237,57 @@ export const complianceService = {
           ...doc.data()
         } as ComplianceLog));
         callback(logs);
+      }
+    );
+  }
+};
+
+// Vehicles service
+export const vehiclesService = {
+  // Get all vehicles
+  async getVehicles(): Promise<Vehicle[]> {
+    const snapshot = await getDocs(collection(db, 'vehicles'));
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Vehicle[];
+  },
+
+  // Add a new vehicle
+  async addVehicle(vehicle: Omit<Vehicle, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    const docRef = await addDoc(collection(db, 'vehicles'), {
+      ...vehicle,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    });
+    return docRef.id;
+  },
+
+  // Update vehicle
+  async updateVehicle(id: string, updates: Partial<Vehicle>): Promise<void> {
+    const vehicleRef = doc(db, 'vehicles', id);
+    await updateDoc(vehicleRef, {
+      ...updates,
+      updatedAt: Timestamp.now()
+    });
+  },
+
+  // Delete vehicle
+  async deleteVehicle(id: string): Promise<void> {
+    const vehicleRef = doc(db, 'vehicles', id);
+    await deleteDoc(vehicleRef);
+  },
+
+  // Listen to vehicles in real-time
+  onVehiclesSnapshot(callback: (vehicles: Vehicle[]) => void) {
+    return onSnapshot(
+      query(collection(db, 'vehicles'), orderBy('vehicle_name', 'asc')),
+      (snapshot) => {
+        const vehicles = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Vehicle[];
+        callback(vehicles);
       }
     );
   }
