@@ -17,13 +17,17 @@ interface InteractiveMapProps {
   center?: [number, number];
   zoom?: number;
   onMapReady?: (map: L.Map) => void;
+  selectedDutyId?: string;
+  onDutyFocus?: (duty: any) => void;
 }
 
 export function InteractiveMap({ 
   height = '400px', 
   center = [15.2993, 74.1240], // Goa coordinates
   zoom = 11,
-  onMapReady 
+  onMapReady,
+  selectedDutyId,
+  onDutyFocus
 }: InteractiveMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -202,6 +206,24 @@ export function InteractiveMap({
       }
     });
   }, [duties, officers]);
+
+  // Focus on selected duty
+  useEffect(() => {
+    if (!mapInstanceRef.current || !selectedDutyId) return;
+
+    const selectedDuty = duties.find(duty => duty.id === selectedDutyId);
+    if (!selectedDuty || !selectedDuty.location || !selectedDuty.location.polygon) return;
+
+    // Calculate center point
+    const centerLat = selectedDuty.location.polygon.reduce((sum, point) => sum + point.lat, 0) / selectedDuty.location.polygon.length;
+    const centerLng = selectedDuty.location.polygon.reduce((sum, point) => sum + point.lng, 0) / selectedDuty.location.polygon.length;
+    
+    // Focus on the duty location
+    mapInstanceRef.current.setView([centerLat, centerLng], 15);
+    
+    // Call the focus callback
+    onDutyFocus?.(selectedDuty);
+  }, [selectedDutyId, duties, onDutyFocus]);
 
   return (
     <div 

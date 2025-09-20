@@ -2,17 +2,21 @@ import { Users, Shield, CheckCircle, AlertTriangle, Database } from 'lucide-reac
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { MapPanel } from '@/components/dashboard/MapPanel';
 import { RecentLogs } from '@/components/dashboard/RecentLogs';
+import { ActiveDutiesList } from '@/components/dashboard/ActiveDutiesList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRealTimeOfficers, useRealTimeDuties, useRealTimeCompliance } from '@/hooks/useRealTimeData';
 import { initializeDemoData } from '@/utils/seedData';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 export default function Dashboard() {
   const { officers, loading: officersLoading } = useRealTimeOfficers();
   const { duties, activeDuties, completedDuties, loading: dutiesLoading } = useRealTimeDuties();
   const { logs, recentLogs, loading: logsLoading } = useRealTimeCompliance();
   const { toast } = useToast();
+  
+  const [selectedDutyId, setSelectedDutyId] = useState<string | undefined>();
   
   const currentDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -40,6 +44,15 @@ export default function Dashboard() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleDutyClick = (duty: any) => {
+    setSelectedDutyId(duty.id);
+  };
+
+  const handleDutyFocus = (duty: any) => {
+    // Optional: Add any additional logic when a duty is focused
+    console.log('Focused on duty:', duty);
   };
 
   return (
@@ -93,16 +106,27 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Map Panel */}
-        <div className="lg:col-span-1">
-          <MapPanel />
+        <div className="lg:col-span-2">
+          <MapPanel 
+            selectedDutyId={selectedDutyId}
+            onDutyFocus={handleDutyFocus}
+          />
         </div>
 
-        {/* Recent Logs */}
+        {/* Active Duties List */}
         <div className="lg:col-span-1">
-          <RecentLogs />
+          <ActiveDutiesList 
+            onDutyClick={handleDutyClick}
+            selectedDutyId={selectedDutyId}
+          />
         </div>
+      </div>
+
+      {/* Recent Logs */}
+      <div className="grid grid-cols-1">
+        <RecentLogs />
       </div>
     </div>
   );

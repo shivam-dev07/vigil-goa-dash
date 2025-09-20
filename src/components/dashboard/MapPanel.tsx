@@ -2,7 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
 import { InteractiveMap } from '@/components/maps/InteractiveMap';
 
-export function MapPanel() {
+interface MapPanelProps {
+  selectedDutyId?: string;
+  onDutyFocus?: (duty: any) => void;
+}
+
+export function MapPanel({ selectedDutyId, onDutyFocus }: MapPanelProps) {
   return (
     <Card className="h-[400px]">
       <CardHeader>
@@ -16,6 +21,8 @@ export function MapPanel() {
           height="100%" 
           center={[15.2993, 74.1240]} // Goa coordinates
           zoom={11}
+          selectedDutyId={selectedDutyId}
+          onDutyFocus={onDutyFocus}
         />
       </CardContent>
     </Card>

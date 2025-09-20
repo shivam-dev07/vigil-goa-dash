@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,14 +21,15 @@ export function DutyAssignmentForm() {
   const [selectedPolygon, setSelectedPolygon] = useState<Array<{lat: number, lng: number}>>([]);
   const [geofenceRadius, setGeofenceRadius] = useState(200);
   const [currentGeofence, setCurrentGeofence] = useState<L.Circle | null>(null);
+  const [showMapCircle, setShowMapCircle] = useState(false);
   
   const [formData, setFormData] = useState({
     officerId: '',
     dutyType: '' as 'naka' | 'patrol' | '',
-    startDate: '',
-    startTime: '',
-    endDate: '',
-    endTime: '',
+    startDate: new Date().toISOString().split('T')[0], // Today's date
+    startTime: '09:00',
+    endDate: new Date().toISOString().split('T')[0], // Today's date
+    endTime: '17:00',
     locationName: '',
     comments: '',
   });
@@ -58,18 +59,28 @@ export function DutyAssignmentForm() {
 
   // Helper function to create patrol polygon (circular around point)
   const createPatrolPolygon = (center: [number, number]): Array<{lat: number, lng: number}> => {
-    const [lat, lng] = center;
-    const radius = 0.01; // ~1km radius
-    const points = [];
+    return createCirclePolygon(center, geofenceRadius);
+  };
+
+  // Function to show circle on map when ready
+  const showCircleOnMap = (center: [number, number]) => {
+    if (!mapRef.current || !formData.dutyType) return;
     
-    // Create 16 points around the circle
-    for (let i = 0; i < 16; i++) {
-      const angle = (i * 2 * Math.PI) / 16;
-      const pointLat = lat + (radius * Math.cos(angle));
-      const pointLng = lng + (radius * Math.sin(angle));
-      points.push({ lat: pointLat, lng: pointLng });
+    // Remove previous circle
+    if (currentGeofence) {
+      mapRef.current.removeLayer(currentGeofence);
     }
-    return points;
+    
+    // Create new circle
+    const circle = L.circle(center, {
+      color: formData.dutyType === 'naka' ? '#22c55e' : '#3b82f6',
+      fillColor: formData.dutyType === 'naka' ? '#22c55e' : '#3b82f6',
+      fillOpacity: 0.2,
+      radius: geofenceRadius
+    }).addTo(mapRef.current);
+    
+    setCurrentGeofence(circle);
+    setShowMapCircle(true);
   };
 
   const handleMapReady = (map: L.Map) => {
@@ -80,43 +91,16 @@ export function DutyAssignmentForm() {
       const { lat, lng } = e.latlng;
       setSelectedLocation([lat, lng]);
       
-      // Remove previous marker/geofence
-      if (currentGeofence) {
-        map.removeLayer(currentGeofence);
-      }
+      // Show circle at clicked location
+      showCircleOnMap([lat, lng]);
       
-      // Add new location marker
-      const marker = L.marker([lat, lng])
-        .addTo(map)
-        .bindPopup('Selected duty location')
-        .openPopup();
-      
+      // Create polygon for database storage
       if (formData.dutyType === 'naka') {
-        // Add circular geofence for Naka duty
-        const circle = L.circle([lat, lng], {
-          color: '#22c55e',
-          fillColor: '#22c55e',
-          fillOpacity: 0.2,
-          radius: geofenceRadius
-        }).addTo(map);
-        setCurrentGeofence(circle);
-        
-        // Create polygon from circle for database storage
         const polygon = createCirclePolygon([lat, lng], geofenceRadius);
         setSelectedPolygon(polygon);
       } else if (formData.dutyType === 'patrol') {
-        // For patrol, create a circular area around the point
         const polygon = createPatrolPolygon([lat, lng]);
         setSelectedPolygon(polygon);
-        
-        // Draw circle on map for patrol
-        const circle = L.circle([lat, lng], {
-          color: '#3b82f6',
-          fillColor: '#3b82f6',
-          fillOpacity: 0.2,
-          radius: geofenceRadius
-        }).addTo(map);
-        setCurrentGeofence(circle);
       }
     });
   };
@@ -124,19 +108,37 @@ export function DutyAssignmentForm() {
   const handleRadiusChange = (radius: number) => {
     setGeofenceRadius(radius);
     
-    if (currentGeofence && selectedLocation && mapRef.current) {
-      mapRef.current.removeLayer(currentGeofence);
-      
-      const newCircle = L.circle(selectedLocation, {
-        color: '#22c55e',
-        fillColor: '#22c55e',
-        fillOpacity: 0.2,
-        radius: radius
-      }).addTo(mapRef.current);
-      
-      setCurrentGeofence(newCircle);
+    // Update circle if it's already shown
+    if (showMapCircle && mapRef.current) {
+      if (selectedLocation) {
+        showCircleOnMap(selectedLocation);
+      } else {
+        const mapCenter = mapRef.current.getCenter();
+        showCircleOnMap([mapCenter.lat, mapCenter.lng]);
+      }
     }
   };
+
+  // Show circle when duty type and radius are ready
+  React.useEffect(() => {
+    if (formData.dutyType && mapRef.current) {
+      // Show circle at map center initially
+      const mapCenter = mapRef.current.getCenter();
+      showCircleOnMap([mapCenter.lat, mapCenter.lng]);
+    }
+  }, [formData.dutyType, geofenceRadius]);
+
+  // Update circle when radius changes
+  React.useEffect(() => {
+    if (showMapCircle && mapRef.current) {
+      if (selectedLocation) {
+        showCircleOnMap(selectedLocation);
+      } else {
+        const mapCenter = mapRef.current.getCenter();
+        showCircleOnMap([mapCenter.lat, mapCenter.lng]);
+      }
+    }
+  }, [geofenceRadius, selectedLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,13 +170,14 @@ export function DutyAssignmentForm() {
       const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
       const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
 
+
       // Validate dates
       if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
         throw new Error('Invalid date format');
       }
 
       if (startDateTime >= endDateTime) {
-        throw new Error('End time must be after start time');
+        throw new Error('End time must be after start time. Please ensure the end date/time is later than the start date/time.');
       }
 
       const dutyData: Omit<Duty, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -204,15 +207,16 @@ export function DutyAssignmentForm() {
       setFormData({
         officerId: '',
         dutyType: '' as 'naka' | 'patrol' | '',
-        startDate: '',
-        startTime: '',
-        endDate: '',
-        endTime: '',
+        startDate: new Date().toISOString().split('T')[0],
+        startTime: '09:00',
+        endDate: new Date().toISOString().split('T')[0],
+        endTime: '17:00',
         locationName: '',
         comments: '',
       });
       setSelectedLocation(null);
       setSelectedPolygon([]);
+      setShowMapCircle(false);
       if (currentGeofence && mapRef.current) {
         mapRef.current.removeLayer(currentGeofence);
         setCurrentGeofence(null);
@@ -358,9 +362,9 @@ export function DutyAssignmentForm() {
               />
             </div>
 
-            {formData.dutyType === 'naka' && (
+            {(formData.dutyType === 'naka' || formData.dutyType === 'patrol') && (
               <div className="space-y-2">
-                <Label htmlFor="radius">Geofence Radius (meters)</Label>
+                <Label htmlFor="radius">Area Radius (meters)</Label>
                 <Input
                   id="radius"
                   type="number"
@@ -369,6 +373,9 @@ export function DutyAssignmentForm() {
                   value={geofenceRadius}
                   onChange={(e) => handleRadiusChange(Number(e.target.value))}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Adjust the radius to set the size of the duty area
+                </p>
               </div>
             )}
 
@@ -400,7 +407,10 @@ export function DutyAssignmentForm() {
             Assignment Map
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Click on the map to select duty location
+            {showMapCircle 
+              ? "Click on the map to position the duty area, then click 'Assign Duty'"
+              : "Select duty type and radius to see the area on the map"
+            }
           </p>
         </CardHeader>
         <CardContent className="p-0">
