@@ -126,7 +126,7 @@ export function AssignmentMap({
 
       // Create duty icon
       const dutyIcon = L.divIcon({
-        html: duty.type === 'naka' ? '🛑' : '🚶‍♂️',
+        html: duty.type === 'naka' ? '🛑' : '🚶',
         iconSize: [30, 30],
         className: 'duty-marker'
       });
@@ -213,10 +213,24 @@ export function AssignmentMap({
   }, [selectedLocation, selectedDutyType, geofenceRadius]);
 
   return (
-    <div 
-      ref={mapRef} 
-      style={{ height, width: '100%' }}
-      className="rounded-lg overflow-hidden border border-border"
-    />
+    <>
+      <style>{`
+        .duty-marker {
+          background: white;
+          border: 2px solid #333;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+      `}</style>
+      <div 
+        ref={mapRef} 
+        style={{ height, width: '100%' }}
+        className="rounded-lg overflow-hidden border border-border"
+      />
+    </>
   );
 }

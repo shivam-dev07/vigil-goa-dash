@@ -156,7 +156,7 @@ export function InteractiveMap({
 
       // Create duty icon based on type
       const dutyIcon = L.divIcon({
-        html: duty.type === 'naka' ? '🛑' : '🚶‍♂️',
+        html: duty.type === 'naka' ? '🛑' : '🚶',
         iconSize: [30, 30],
         className: 'duty-marker'
       });
@@ -348,6 +348,16 @@ export function InteractiveMap({
         }
         .custom-popup .leaflet-popup-tip {
           pointer-events: auto !important;
+        }
+        .duty-marker {
+          background: white;
+          border: 2px solid #333;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         .selected-marker {
           z-index: 1000 !important;
