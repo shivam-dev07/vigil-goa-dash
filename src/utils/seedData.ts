@@ -45,36 +45,65 @@ export const seedDuties = async () => {
   const startTime = new Date(now.getTime() - 2 * 60 * 60 * 1000); // 2 hours ago
   const endTime = new Date(now.getTime() + 4 * 60 * 60 * 1000); // 4 hours from now
 
+  // First, get the officer IDs from the database
+  const officers = await officersService.getOfficers();
+  if (officers.length === 0) {
+    console.error('No officers found. Please seed officers first.');
+    return;
+  }
+
   const duties = [
     {
-      officerId: 'demo-1',
-      officerName: 'Officer Sharma',
-      officerBadge: 'P012345',
+      officerUid: officers[0].id!, // Use the actual officer ID from database
       type: 'naka' as const,
       location: {
-        name: 'Panaji Market Square',
-        coordinates: [15.4909, 73.8278] as [number, number],
-        geofence: { radius: 200 },
+        polygon: [
+          { lat: 15.4909, lng: 73.8278 },
+          { lat: 15.4919, lng: 73.8288 },
+          { lat: 15.4899, lng: 73.8268 },
+          { lat: 15.4909, lng: 73.8278 }
+        ]
       },
-      startTime: Timestamp.fromDate(startTime),
-      endTime: Timestamp.fromDate(endTime),
-      status: 'active' as const,
-      checkInTime: Timestamp.fromDate(new Date(startTime.getTime() + 15 * 60 * 1000)),
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      status: 'incomplete' as const,
+      assignedAt: startTime.toISOString(),
+      comments: 'Night shift naka duty at Panaji Market Square'
     },
     {
-      officerId: 'demo-2',
-      officerName: 'Officer Patel',
-      officerBadge: 'P012346',
+      officerUid: officers[1].id!, // Use the actual officer ID from database
       type: 'patrol' as const,
       location: {
-        name: 'Beach Road Patrol',
-        coordinates: [15.2700, 73.9500] as [number, number],
+        polygon: [
+          { lat: 15.2700, lng: 73.9500 },
+          { lat: 15.2750, lng: 73.9550 },
+          { lat: 15.2650, lng: 73.9450 },
+          { lat: 15.2700, lng: 73.9500 }
+        ]
       },
-      startTime: Timestamp.fromDate(startTime),
-      endTime: Timestamp.fromDate(endTime),
-      status: 'active' as const,
-      checkInTime: Timestamp.fromDate(new Date(startTime.getTime() + 10 * 60 * 1000)),
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      status: 'incomplete' as const,
+      assignedAt: startTime.toISOString(),
+      comments: 'Beach road patrol duty'
     },
+    {
+      officerUid: officers[2]?.id || officers[0].id!, // Use third officer or fallback
+      type: 'naka' as const,
+      location: {
+        polygon: [
+          { lat: 15.3960, lng: 73.8157 },
+          { lat: 15.4010, lng: 73.8207 },
+          { lat: 15.3910, lng: 73.8107 },
+          { lat: 15.3960, lng: 73.8157 }
+        ]
+      },
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      status: 'incomplete' as const,
+      assignedAt: startTime.toISOString(),
+      comments: 'Vasco area naka duty'
+    }
   ];
 
   try {
@@ -88,77 +117,86 @@ export const seedDuties = async () => {
 };
 
 export const seedComplianceLogs = async () => {
+  // Get actual duties and officers from database
+  const duties = await dutiesService.getDuties();
+  const officers = await officersService.getOfficers();
+  
+  if (duties.length === 0 || officers.length === 0) {
+    console.error('No duties or officers found. Please seed them first.');
+    return;
+  }
+
   const logs = [
     {
-      dutyId: 'demo-duty-1',
-      officerId: 'demo-1',
-      officerName: 'Officer Sharma',
+      dutyId: duties[0].id!,
+      officerId: duties[0].officerUid,
+      officerName: officers.find(o => o.id === duties[0].officerUid)?.staff_name || 'Unknown Officer',
       action: 'check-in' as const,
       location: {
         name: 'Panaji Market Square',
         coordinates: [15.4909, 73.8278] as [number, number],
       },
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 5 * 60 * 1000)), // 5 minutes ago
+      timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
       details: 'On-time check-in for night shift',
     },
     {
-      dutyId: 'demo-duty-2',
-      officerId: 'demo-2',
-      officerName: 'Officer Patel',
+      dutyId: duties[1]?.id || duties[0].id!,
+      officerId: duties[1]?.officerUid || duties[0].officerUid,
+      officerName: officers.find(o => o.id === (duties[1]?.officerUid || duties[0].officerUid))?.staff_name || 'Unknown Officer',
       action: 'patrol-update' as const,
       location: {
         name: 'Beach Road',
         coordinates: [15.2700, 73.9500] as [number, number],
       },
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 15 * 60 * 1000)), // 15 minutes ago
+      timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
       details: 'Patrol route completed successfully',
     },
     {
-      dutyId: 'demo-duty-1',
-      officerId: 'demo-1',
-      officerName: 'Officer Sharma',
+      dutyId: duties[0].id!,
+      officerId: duties[0].officerUid,
+      officerName: officers.find(o => o.id === duties[0].officerUid)?.staff_name || 'Unknown Officer',
       action: 'incident-report' as const,
       location: {
         name: 'Market Area',
         coordinates: [15.4859, 73.8228] as [number, number],
       },
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 30 * 60 * 1000)), // 30 minutes ago
+      timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
       details: 'Minor traffic violation reported and resolved',
     },
     {
-      dutyId: 'demo-duty-3',
-      officerId: 'demo-3',
-      officerName: 'Officer Singh',
+      dutyId: duties[2]?.id || duties[0].id!,
+      officerId: duties[2]?.officerUid || duties[0].officerUid,
+      officerName: officers.find(o => o.id === (duties[2]?.officerUid || duties[0].officerUid))?.staff_name || 'Unknown Officer',
       action: 'check-out' as const,
       location: {
         name: 'Vasco Police Station',
         coordinates: [15.3960, 73.8157] as [number, number],
       },
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 45 * 60 * 1000)), // 45 minutes ago
+      timestamp: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
       details: 'End of shift check-out',
     },
     {
-      dutyId: 'demo-duty-4',
-      officerId: 'demo-4',
-      officerName: 'Officer Das',
+      dutyId: duties[1]?.id || duties[0].id!,
+      officerId: duties[1]?.officerUid || duties[0].officerUid,
+      officerName: officers.find(o => o.id === (duties[1]?.officerUid || duties[0].officerUid))?.staff_name || 'Unknown Officer',
       action: 'geofence-violation' as const,
       location: {
         name: 'Calangute Beach',
         coordinates: [15.5400, 73.7500] as [number, number],
       },
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 60 * 60 * 1000)), // 1 hour ago
+      timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
       details: 'Officer left assigned patrol area',
     },
     {
-      dutyId: 'demo-duty-2',
-      officerId: 'demo-2',
-      officerName: 'Officer Patel',
+      dutyId: duties[1]?.id || duties[0].id!,
+      officerId: duties[1]?.officerUid || duties[0].officerUid,
+      officerName: officers.find(o => o.id === (duties[1]?.officerUid || duties[0].officerUid))?.staff_name || 'Unknown Officer',
       action: 'patrol-update' as const,
       location: {
         name: 'Margao City Center',
         coordinates: [15.2700, 73.9500] as [number, number],
       },
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 90 * 60 * 1000)), // 1.5 hours ago
+      timestamp: new Date(Date.now() - 90 * 60 * 1000), // 1.5 hours ago
       details: 'Routine patrol check completed',
     },
   ];

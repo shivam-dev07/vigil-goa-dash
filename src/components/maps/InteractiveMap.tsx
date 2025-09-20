@@ -90,6 +90,9 @@ export function InteractiveMap({
 
     mapInstanceRef.current = map;
     
+    // Disable popup close on map click globally
+    map.options.closePopupOnClick = false;
+    
     if (onMapReady) {
       onMapReady(map);
     }
@@ -158,50 +161,129 @@ export function InteractiveMap({
         className: 'duty-marker'
       });
 
-      // Add marker
-      const marker = L.marker(centerPoint, { icon: dutyIcon })
+      // Check if this duty is selected to apply highlighting
+      const isSelected = selectedDutyId === duty.id;
+      const markerSize = isSelected ? [40, 40] : [30, 30];
+      const markerClass = isSelected ? 'duty-marker selected-marker' : 'duty-marker';
+      
+      // Create marker with appropriate size based on selection
+      const marker = L.marker(centerPoint, { 
+        icon: L.divIcon({
+          html: duty.type === 'naka' ? '🛑' : '🚶‍♂️',
+          iconSize: markerSize,
+          className: markerClass
+        })
+      })
         .bindPopup(`
-          <div style="min-width: 200px;">
-            <b>${officer.name}</b><br/>
-            <small>${officer.designation} • ${officer.staffId}</small><br/>
-            <hr style="margin: 8px 0;">
-            <b>Type:</b> ${duty.type?.toUpperCase() || 'Unknown'}<br/>
-            <b>Status:</b> <span style="color: ${duty.status === 'complete' ? '#22c55e' : duty.status === 'incomplete' ? '#ef4444' : '#f59e0b'}; font-weight: bold;">${duty.status || 'Unknown'}</span><br/>
-            ${duty.comments ? `<b>Comments:</b> ${duty.comments}<br/>` : ''}
-            <small><b>Assigned:</b> ${duty.assignedAt ? new Date(duty.assignedAt).toLocaleString('en-IN') : 'Unknown'}</small>
+          <div style="min-width: 250px; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;" onclick="event.stopPropagation();">
+            <div style="position: relative; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 16px;" onclick="event.stopPropagation();">
+              <button onclick="event.stopPropagation(); this.closest('.leaflet-popup').remove();" style="position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 16px; cursor: pointer; color: #666; padding: 4px; line-height: 1;">×</button>
+              <div style="margin-bottom: 12px;" onclick="event.stopPropagation();">
+                <div style="font-weight: 600; font-size: 16px; color: #1f2937; margin-bottom: 4px;">${officer.name}</div>
+                <div style="font-size: 13px; color: #6b7280;">${officer.designation} • ${officer.staffId}</div>
+              </div>
+              <hr style="margin: 12px 0; border: none; border-top: 1px solid #e5e7eb;" onclick="event.stopPropagation();">
+              <div style="font-size: 14px; line-height: 1.5;" onclick="event.stopPropagation();">
+                <div style="margin-bottom: 6px;"><span style="font-weight: 600;">Type:</span> ${duty.type?.toUpperCase() || 'Unknown'}</div>
+                <div style="margin-bottom: 6px;"><span style="font-weight: 600;">Status:</span> <span style="color: ${duty.status === 'complete' ? '#22c55e' : duty.status === 'incomplete' ? '#ef4444' : '#f59e0b'}; font-weight: 600;">${duty.status || 'Unknown'}</span></div>
+                <div style="font-size: 12px; color: #6b7280;"><span style="font-weight: 600;">Assigned:</span> ${duty.assignedAt ? new Date(duty.assignedAt).toLocaleString('en-IN') : 'Unknown'}</div>
+                ${duty.comments ? `<div style="margin-top: 8px; font-size: 12px;"><span style="font-weight: 600;">Comments:</span> ${duty.comments}</div>` : ''}
+              </div>
+            </div>
           </div>
-        `);
+        `, {
+          closeOnClick: false,
+          autoClose: false,
+          closeOnEscapeKey: false,
+          className: 'custom-popup',
+          maxWidth: 300,
+          minWidth: 250
+        });
+
+      // Store duty ID on marker for easy reference
+      (marker as any).dutyId = duty.id;
+
+      // Add event listener to prevent popup from closing when clicked
+      marker.on('popupopen', () => {
+        const popup = marker.getPopup();
+        const popupElement = popup.getElement();
+        if (popupElement) {
+          // Simple approach: prevent clicks inside popup from closing it
+          popupElement.addEventListener('click', (e) => {
+            e.stopPropagation();
+          });
+        }
+      });
 
       markersRef.current?.addLayer(marker);
+      
+      // If this marker is selected, open its popup immediately
+      if (isSelected) {
+        setTimeout(() => {
+          marker.openPopup();
+        }, 50);
+      }
 
       // Add geofence/polygon based on duty type
       if (duty.type === 'naka') {
-        // For naka, create a circle from the polygon points
-        const radius = Math.max(
-          Math.abs(duty.location.polygon[0].lat - centerLat) * 111000, // Convert to meters
-          Math.abs(duty.location.polygon[0].lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180)
-        );
+        // Calculate radius from polygon points - use a more robust calculation
+        let maxDistance = 0;
+        duty.location.polygon.forEach(point => {
+          const distance = Math.sqrt(
+            Math.pow((point.lat - centerLat) * 111000, 2) + 
+            Math.pow((point.lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180), 2)
+          );
+          maxDistance = Math.max(maxDistance, distance);
+        });
         
+        // Ensure minimum radius for visibility
+        const radius = Math.max(maxDistance, 50); // Minimum 50 meters
+        
+        // Debug logging (uncomment for debugging)
+        // console.log(`NAKA Duty ${duty.id} - Calculated radius: ${radius}m, Max distance: ${maxDistance}m`);
+        
+        const isSelected = selectedDutyId === duty.id;
         const circle = L.circle(centerPoint, {
-          color: '#22c55e',
-          fillColor: '#22c55e',
-          fillOpacity: 0.1,
+          color: isSelected ? '#16a34a' : '#22c55e',
+          fillColor: isSelected ? '#16a34a' : '#22c55e',
+          fillOpacity: isSelected ? 0.2 : 0.1,
+          weight: isSelected ? 3 : 1,
           radius: radius
         });
+        
+        // Store duty ID on circle for easy reference
+        (circle as any).dutyId = duty.id;
+        
         markersRef.current?.addLayer(circle);
       } else if (duty.type === 'patrol') {
-        // For patrol, create a circle from the polygon points
-        const radius = Math.max(
-          Math.abs(duty.location.polygon[0].lat - centerLat) * 111000, // Convert to meters
-          Math.abs(duty.location.polygon[0].lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180)
-        );
+        // Calculate radius from polygon points - use a more robust calculation
+        let maxDistance = 0;
+        duty.location.polygon.forEach(point => {
+          const distance = Math.sqrt(
+            Math.pow((point.lat - centerLat) * 111000, 2) + 
+            Math.pow((point.lng - centerLng) * 111000 * Math.cos(centerLat * Math.PI / 180), 2)
+          );
+          maxDistance = Math.max(maxDistance, distance);
+        });
         
+        // Ensure minimum radius for visibility
+        const radius = Math.max(maxDistance, 50); // Minimum 50 meters
+        
+        // Debug logging (uncomment for debugging)
+        // console.log(`PATROL Duty ${duty.id} - Calculated radius: ${radius}m, Max distance: ${maxDistance}m`);
+        
+        const isSelected = selectedDutyId === duty.id;
         const circle = L.circle(centerPoint, {
-          color: '#3b82f6',
-          fillColor: '#3b82f6',
-          fillOpacity: 0.1,
+          color: isSelected ? '#2563eb' : '#3b82f6',
+          fillColor: isSelected ? '#2563eb' : '#3b82f6',
+          fillOpacity: isSelected ? 0.2 : 0.1,
+          weight: isSelected ? 3 : 1,
           radius: radius
         });
+        
+        // Store duty ID on circle for easy reference
+        (circle as any).dutyId = duty.id;
+        
         markersRef.current?.addLayer(circle);
       }
     });
@@ -218,18 +300,79 @@ export function InteractiveMap({
     const centerLat = selectedDuty.location.polygon.reduce((sum, point) => sum + point.lat, 0) / selectedDuty.location.polygon.length;
     const centerLng = selectedDuty.location.polygon.reduce((sum, point) => sum + point.lng, 0) / selectedDuty.location.polygon.length;
     
-    // Focus on the duty location
-    mapInstanceRef.current.setView([centerLat, centerLng], 15);
+    // Focus on the duty location with appropriate zoom level
+    mapInstanceRef.current.setView([centerLat, centerLng], 16);
     
     // Call the focus callback
     onDutyFocus?.(selectedDuty);
   }, [selectedDutyId, duties, onDutyFocus]);
 
   return (
-    <div 
-      ref={mapRef} 
-      style={{ height, width: '100%' }}
-      className="rounded-lg overflow-hidden border border-border"
-    />
+    <>
+      <style>{`
+        .custom-popup .leaflet-popup-content-wrapper {
+          background: transparent;
+          box-shadow: none;
+          border-radius: 0;
+          padding: 0;
+          pointer-events: auto;
+        }
+        .custom-popup .leaflet-popup-content {
+          margin: 0;
+          padding: 0;
+          width: auto !important;
+          pointer-events: auto;
+        }
+        .custom-popup .leaflet-popup-tip {
+          background: white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          pointer-events: auto;
+        }
+        .custom-popup .leaflet-popup-close-button {
+          display: none;
+        }
+        .custom-popup {
+          pointer-events: auto !important;
+        }
+        .custom-popup * {
+          pointer-events: auto !important;
+        }
+        .leaflet-popup-pane {
+          pointer-events: none;
+        }
+        .custom-popup .leaflet-popup-content-wrapper {
+          pointer-events: auto !important;
+        }
+        .custom-popup .leaflet-popup-content {
+          pointer-events: auto !important;
+        }
+        .custom-popup .leaflet-popup-tip {
+          pointer-events: auto !important;
+        }
+        .selected-marker {
+          z-index: 1000 !important;
+          animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.8;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+      `}</style>
+      <div 
+        ref={mapRef} 
+        style={{ height, width: '100%' }}
+        className="rounded-lg overflow-hidden border border-border"
+      />
+    </>
   );
 }

@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { InteractiveMap } from '@/components/maps/InteractiveMap';
-import { useRealTimeOfficers } from '@/hooks/useRealTimeData';
+import { AssignmentMap } from '@/components/maps/AssignmentMap';
+import { useRealTimeOfficers, useRealTimeDuties } from '@/hooks/useRealTimeData';
 import { dutiesService, Duty } from '@/services/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Timestamp } from 'firebase/firestore';
@@ -15,6 +15,7 @@ import L from 'leaflet';
 
 export function DutyAssignmentForm() {
   const { officers } = useRealTimeOfficers();
+  const { duties } = useRealTimeDuties();
   const { toast } = useToast();
   const mapRef = useRef<L.Map | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null);
@@ -22,6 +23,7 @@ export function DutyAssignmentForm() {
   const [geofenceRadius, setGeofenceRadius] = useState(200);
   const [currentGeofence, setCurrentGeofence] = useState<L.Circle | null>(null);
   const [showMapCircle, setShowMapCircle] = useState(false);
+  const [showExistingDuties, setShowExistingDuties] = useState(true);
   
   const [formData, setFormData] = useState({
     officerId: '',
@@ -85,24 +87,6 @@ export function DutyAssignmentForm() {
 
   const handleMapReady = (map: L.Map) => {
     mapRef.current = map;
-    
-    // Add click handler for location selection
-    map.on('click', (e: L.LeafletMouseEvent) => {
-      const { lat, lng } = e.latlng;
-      setSelectedLocation([lat, lng]);
-      
-      // Show circle at clicked location
-      showCircleOnMap([lat, lng]);
-      
-      // Create polygon for database storage
-      if (formData.dutyType === 'naka') {
-        const polygon = createCirclePolygon([lat, lng], geofenceRadius);
-        setSelectedPolygon(polygon);
-      } else if (formData.dutyType === 'patrol') {
-        const polygon = createPatrolPolygon([lat, lng]);
-        setSelectedPolygon(polygon);
-      }
-    });
   };
 
   const handleRadiusChange = (radius: number) => {
@@ -200,7 +184,7 @@ export function DutyAssignmentForm() {
 
       toast({
         title: "Duty assigned successfully",
-        description: `${selectedOfficer.staff_name} has been assigned ${formData.dutyType} duty`,
+        description: `${selectedOfficer.staff_name} has been assigned ${formData.dutyType} duty. You can see it on the map above or go to Dashboard to view all duties.`,
       });
 
       // Reset form
@@ -402,10 +386,19 @@ export function DutyAssignmentForm() {
       {/* Interactive Map */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary" />
-            Assignment Map
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Assignment Map
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowExistingDuties(!showExistingDuties)}
+            >
+              {showExistingDuties ? 'Hide' : 'Show'} Existing Duties
+            </Button>
+          </div>
           <p className="text-sm text-muted-foreground">
             {showMapCircle 
               ? "Click on the map to position the duty area, then click 'Assign Duty'"
@@ -414,11 +407,26 @@ export function DutyAssignmentForm() {
           </p>
         </CardHeader>
         <CardContent className="p-0">
-          <InteractiveMap 
+          <AssignmentMap 
             height="500px"
             center={[15.2993, 74.1240]}
             zoom={11}
             onMapReady={handleMapReady}
+            onLocationSelect={(lat, lng) => {
+              setSelectedLocation([lat, lng]);
+              // Create polygon for database storage
+              if (formData.dutyType === 'naka') {
+                const polygon = createCirclePolygon([lat, lng], geofenceRadius);
+                setSelectedPolygon(polygon);
+              } else if (formData.dutyType === 'patrol') {
+                const polygon = createPatrolPolygon([lat, lng]);
+                setSelectedPolygon(polygon);
+              }
+            }}
+            showExistingDuties={showExistingDuties}
+            selectedDutyType={formData.dutyType}
+            geofenceRadius={geofenceRadius}
+            selectedLocation={selectedLocation}
           />
         </CardContent>
       </Card>

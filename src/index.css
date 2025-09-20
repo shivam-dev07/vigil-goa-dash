@@ -1,3 +1,4 @@
+@import 'leaflet/dist/leaflet.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -126,8 +127,7 @@
   }
 }
 
-/* Leaflet map styles */
-@import 'leaflet/dist/leaflet.css';
+/* Leaflet map styles - moved to top */
 
 /* Custom animations and components */
 @layer components {

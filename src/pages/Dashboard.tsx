@@ -11,9 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
 export default function Dashboard() {
-  const { officers, loading: officersLoading } = useRealTimeOfficers();
-  const { duties, activeDuties, completedDuties, loading: dutiesLoading } = useRealTimeDuties();
-  const { logs, recentLogs, loading: logsLoading } = useRealTimeCompliance();
+  const { officers, loading: officersLoading, error: officersError } = useRealTimeOfficers();
+  const { duties, activeDuties, completedDuties, loading: dutiesLoading, error: dutiesError } = useRealTimeDuties();
+  const { logs, recentLogs, loading: logsLoading, error: logsError } = useRealTimeCompliance();
   const { toast } = useToast();
   
   const [selectedDutyId, setSelectedDutyId] = useState<string | undefined>();
@@ -54,6 +54,24 @@ export default function Dashboard() {
     // Optional: Add any additional logic when a duty is focused
     console.log('Focused on duty:', duty);
   };
+
+  // Show error messages if any
+  if (officersError || dutiesError || logsError) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="text-center py-12">
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-destructive mb-2">Connection Error</h2>
+          <p className="text-muted-foreground mb-4">
+            Unable to connect to the database. Please check your internet connection and try again.
+          </p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
